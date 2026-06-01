@@ -1,0 +1,19 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+node_modules/
+oh_modules/
+.hvigor/
+build/
+dist/
+.vercel/
+
+# Supabase local state. Keep migrations and functions, ignore linked project cache.
+supabase/.temp/
+
+# HarmonyOS build output
+**/.cxx/
+**/.preview/
+**/.test/
+**/build/

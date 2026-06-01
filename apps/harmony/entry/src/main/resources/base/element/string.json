@@ -1,0 +1,20 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "今日十条"
+    },
+    {
+      "name": "module_desc",
+      "value": "今日十条 HarmonyOS NEXT module"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "今日十条"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "今日十条"
+    }
+  ]
+}
