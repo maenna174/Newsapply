@@ -1,5 +1,6 @@
 import { MOCK_ARTICLES, TODAY_EDITION } from '../data/MockNewsData';
 import { EditionMeta, NewsArticle } from '../model/NewsModels';
+import { DailyNewsService } from '../services/DailyNewsService';
 
 @Entry
 @ComponentV2
@@ -7,9 +8,42 @@ struct Index {
   @Local activeTab: string = 'today';
   @Local selectedArticleId: string = '';
   @Local lastUpdatedText: string = '刚刚';
+  @Local statusText: string = '正在读取线上每日版本';
+  @Local isLoading: boolean = false;
+  @Local articles: NewsArticle[] = MOCK_ARTICLES;
+  @Local edition: EditionMeta = TODAY_EDITION;
 
-  private articles: NewsArticle[] = MOCK_ARTICLES;
-  private edition: EditionMeta = TODAY_EDITION;
+  private dailyNewsService: DailyNewsService = new DailyNewsService();
+
+  aboutToAppear(): void {
+    this.loadTodayNews();
+  }
+
+  private loadTodayNews(): void {
+    if (this.isLoading) {
+      return;
+    }
+
+    this.isLoading = true;
+    this.statusText = '正在读取线上每日版本';
+    this.dailyNewsService.fetchToday()
+      .then((result) => {
+        if (result.articles.length > 0) {
+          this.articles = result.articles;
+          this.edition = result.edition;
+          this.statusText = '已同步线上版本';
+        } else {
+          this.statusText = '线上版本暂无条目，已显示本地样例';
+        }
+        this.lastUpdatedText = '刚刚';
+      })
+      .catch((error: Error) => {
+        this.statusText = error.message || '线上版本读取失败，已显示本地样例';
+      })
+      .finally(() => {
+        this.isLoading = false;
+      });
+  }
 
   private getSelectedArticle(): NewsArticle {
     for (let index = 0; index < this.articles.length; index++) {
@@ -136,6 +170,25 @@ struct Index {
           Text(`更新：${this.lastUpdatedText}`)
             .fontSize(13)
             .fontColor('#687076')
+        }
+        .width('100%')
+
+        Row({ space: 10 }) {
+          Text(this.statusText)
+            .fontSize(13)
+            .fontColor(this.statusText.includes('失败') ? '#B34B45' : '#687076')
+            .layoutWeight(1)
+
+          Button(this.isLoading ? '同步中' : '刷新')
+            .height(32)
+            .fontSize(13)
+            .fontColor('#2E6F57')
+            .backgroundColor('#E4EEE9')
+            .borderRadius(8)
+            .enabled(!this.isLoading)
+            .onClick(() => {
+              this.loadTodayNews();
+            })
         }
         .width('100%')
 
@@ -334,7 +387,7 @@ struct Index {
         this.PolicyBlock('每条保留理由', '新闻入选理由会与条目一起保存，方便后台审核和用户理解。')
         this.PolicyBlock('来源多样化', '同一事件会优先去重，并避免整期内容来自单一媒体或单一议题。')
 
-        Text('下一步会接入后端 API：GET /editions/today。鸿蒙端仍只负责展示服务端发布版本，不参与推荐决策。')
+        Text('当前已接入线上 API：GET /functions/v1/editions/today。鸿蒙端只负责展示服务端发布版本，不参与推荐决策。')
           .fontSize(13)
           .fontColor('#687076')
           .lineHeight(20)

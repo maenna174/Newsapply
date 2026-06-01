@@ -8,6 +8,7 @@ oh_modules/
 build/
 dist/
 .vercel/
+*.zip
 
 # Supabase local state. Keep migrations and functions, ignore linked project cache.
 supabase/.temp/
