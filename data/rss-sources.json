@@ -1,0 +1,82 @@
+[
+  {
+    "name": "中国新闻网",
+    "homepageUrl": "https://www.chinanews.com.cn/",
+    "feedUrl": "https://www.chinanews.com.cn/rss/scroll-news.xml",
+    "category": "society",
+    "crawlType": "rss",
+    "priority": 80,
+    "reliabilityNote": "中文综合新闻来源，适合作为国内、社会、财经、国际中文候选池。",
+    "licenseNote": "第一版只保存标题、摘要、链接和发布时间；商业化前确认授权。"
+  },
+  {
+    "name": "BBC News",
+    "homepageUrl": "https://www.bbc.com/news",
+    "feedUrl": "https://feeds.bbci.co.uk/news/rss.xml",
+    "category": "international",
+    "crawlType": "rss",
+    "priority": 70,
+    "reliabilityNote": "国际综合新闻来源，作为国际视角候选池。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "BBC Business",
+    "homepageUrl": "https://www.bbc.com/business",
+    "feedUrl": "https://feeds.bbci.co.uk/news/business/rss.xml",
+    "category": "finance",
+    "crawlType": "rss",
+    "priority": 65,
+    "reliabilityNote": "国际财经新闻候选来源。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "BBC Technology",
+    "homepageUrl": "https://www.bbc.com/innovation/technology",
+    "feedUrl": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 62,
+    "reliabilityNote": "科技新闻候选来源。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "BBC Health",
+    "homepageUrl": "https://www.bbc.com/news/health",
+    "feedUrl": "https://feeds.bbci.co.uk/news/health/rss.xml",
+    "category": "health",
+    "crawlType": "rss",
+    "priority": 62,
+    "reliabilityNote": "健康新闻候选来源。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "NASA",
+    "homepageUrl": "https://www.nasa.gov/",
+    "feedUrl": "https://www.nasa.gov/news-release/feed/",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 55,
+    "reliabilityNote": "科学、航天、地球观测候选来源。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "United Nations News",
+    "homepageUrl": "https://news.un.org/en/",
+    "feedUrl": "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+    "category": "international",
+    "crawlType": "rss",
+    "priority": 58,
+    "reliabilityNote": "国际组织新闻来源，补充气候、人道、发展等长期议题。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "BBC Sport",
+    "homepageUrl": "https://www.bbc.com/sport",
+    "feedUrl": "https://feeds.bbci.co.uk/sport/rss.xml",
+    "category": "sports",
+    "crawlType": "rss",
+    "priority": 40,
+    "reliabilityNote": "体育候选来源，用于每日版本的轻量内容补充。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  }
+]

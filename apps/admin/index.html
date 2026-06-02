@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>今日十条管理后台</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f6f3;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #687076;
+      --line: #d9ded8;
+      --green: #2e6f57;
+      --green-soft: #e4eee9;
+      --blue: #2d5f8f;
+      --blue-soft: #e7eef7;
+      --amber: #8a4d16;
+      --amber-soft: #f3e7d5;
+      --red: #b34b45;
+      --red-soft: #f5e5e3;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.55;
+    }
+    button, input, textarea {
+      font: inherit;
+    }
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+    .shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 22px 18px 42px;
+    }
+    .top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: var(--green);
+      color: #fff;
+      font-weight: 800;
+    }
+    h1, h2, h3 {
+      margin: 0;
+      letter-spacing: 0;
+      line-height: 1.2;
+    }
+    h1 { font-size: 24px; }
+    h2 { font-size: 18px; }
+    h3 { font-size: 15px; }
+    .sub {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: 16px;
+      align-items: start;
+    }
+    .side-stack {
+      display: grid;
+      gap: 16px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 15px;
+      border-bottom: 1px solid var(--line);
+    }
+    .section {
+      display: grid;
+      gap: 12px;
+      padding: 15px;
+      border-bottom: 1px solid var(--line);
+    }
+    .section:last-child {
+      border-bottom: 0;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      outline: 0;
+    }
+    input {
+      height: 40px;
+      padding: 0 12px;
+    }
+    textarea {
+      min-height: 360px;
+      resize: vertical;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(46, 111, 87, .12);
+    }
+    .small-textarea {
+      min-height: 170px;
+      max-height: 260px;
+    }
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .button, .file-button {
+      min-height: 38px;
+      border-radius: 8px;
+      padding: 0 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .primary { background: var(--green); color: #fff; }
+    .secondary { background: var(--green-soft); color: var(--green); }
+    .blue { background: var(--blue-soft); color: var(--blue); }
+    .danger { background: var(--red-soft); color: var(--red); }
+    .file-button input { display: none; }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .mini-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .metric {
+      border-radius: 8px;
+      background: #f8f9f6;
+      padding: 12px;
+      min-width: 0;
+    }
+    .metric strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1;
+    }
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .list {
+      display: grid;
+      gap: 10px;
+      padding: 15px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .tag {
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-weight: 800;
+    }
+    .tag.draft { background: var(--amber-soft); color: var(--amber); }
+    .tag.published { background: var(--green-soft); color: var(--green); }
+    .status-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .status-pill {
+      border-radius: 6px;
+      padding: 3px 8px;
+      background: var(--amber-soft);
+      color: var(--amber);
+      font-weight: 800;
+    }
+    .status-pill.ok {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+    .field-label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .empty {
+      margin: 0;
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: #fafbf9;
+    }
+    .log {
+      min-height: 130px;
+      max-height: 260px;
+      overflow: auto;
+      background: #111815;
+      color: #dce8df;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+      z-index: 20;
+    }
+    .toast.show { opacity: 1; }
+    @media (max-width: 980px) {
+      .grid, .top, .row, .metric-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <div class="brand">
+        <div class="mark">10</div>
+        <div>
+          <h1>今日十条管理后台</h1>
+          <p class="sub">发布每日版本、查看最近版本。最后一步仍需人工确认。</p>
+        </div>
+      </div>
+      <div class="buttons">
+        <button id="saveConfigButton" class="button secondary" type="button">保存配置</button>
+        <button id="healthButton" class="button blue" type="button">检查连接</button>
+      </div>
+    </header>
+
+    <section class="grid">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>发布每日版本</h2>
+          <div class="buttons">
+            <label class="file-button secondary">
+              导入 JSON
+              <input id="fileInput" type="file" accept="application/json,.json">
+            </label>
+            <button id="validateButton" class="button blue" type="button">远程校验</button>
+            <button id="publishButton" class="button primary" type="button">发布/保存</button>
+          </div>
+        </div>
+        <div class="section">
+          <div class="metric-grid">
+            <div class="metric"><strong id="dateMetric">-</strong><span>日期</span></div>
+            <div class="metric"><strong id="itemMetric">0</strong><span>条目</span></div>
+            <div class="metric"><strong id="sourceMetric">0</strong><span>来源</span></div>
+            <div class="metric"><strong id="statusMetric">-</strong><span>状态</span></div>
+          </div>
+        </div>
+        <div class="section">
+          <textarea id="editionInput" placeholder="导入 data/daily-edition.<date>.json，或粘贴每日版本 JSON"></textarea>
+        </div>
+      </div>
+
+      <aside class="side-stack">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>后台配置</h2>
+          </div>
+          <div class="section">
+            <input id="adminUrlInput" placeholder="Admin Function URL">
+            <input id="adminTokenInput" type="password" placeholder="ADMIN_TOKEN">
+            <p class="sub">token 只保存在当前浏览器 localStorage。不要把管理后台公开给无关人员。</p>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>AI API 接入</h2>
+            <button id="aiConfigButton" class="button secondary" type="button">读取配置</button>
+          </div>
+          <div class="section">
+            <div class="mini-grid">
+              <div class="metric"><strong id="aiProviderMetric">-</strong><span>服务</span></div>
+              <div class="metric"><strong id="aiKeyMetric">-</strong><span>Key</span></div>
+            </div>
+            <div class="status-line">
+              <span id="aiStatusPill" class="status-pill">未检测</span>
+              <span id="aiModelText">模型：-</span>
+            </div>
+            <label class="field-label">
+              API 地址
+              <input id="aiApiUrlInput" placeholder="https://api.deepseek.com">
+            </label>
+            <div class="row">
+              <label class="field-label">
+                模型
+                <input id="aiModelInput" placeholder="deepseek-v4-flash">
+              </label>
+              <label class="field-label">
+                API Key
+                <input id="aiApiKeyInput" type="password" autocomplete="off" placeholder="留空则保留后端已有 Key">
+              </label>
+            </div>
+            <div class="buttons">
+              <button id="aiSaveButton" class="button secondary" type="button">保存 API</button>
+              <label class="file-button secondary">
+                导入候选池
+                <input id="candidateFileInput" type="file" accept="application/json,.json">
+              </label>
+              <button id="aiTestButton" class="button blue" type="button">测试 AI</button>
+              <button id="aiDraftButton" class="button primary" type="button">生成草稿</button>
+            </div>
+            <label class="field-label">
+              候选池 JSON
+              <textarea id="candidateInput" class="small-textarea" placeholder="导入 data/candidates.<date>.json，AI 会从候选池生成 10 条草稿"></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>最近版本</h2>
+            <button id="listButton" class="button secondary" type="button">刷新</button>
+          </div>
+          <div id="editionList" class="list">
+            <p class="empty">尚未加载</p>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section">
+            <h3>操作日志</h3>
+            <div id="log" class="log"></div>
+          </div>
+        </section>
+      </aside>
+    </section>
+  </main>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const defaultAdminUrl = 'https://rrufsrfkmypxvwyggtwm.supabase.co/functions/v1/admin';
+    const nodes = {
+      fileInput: document.getElementById('fileInput'),
+      validateButton: document.getElementById('validateButton'),
+      publishButton: document.getElementById('publishButton'),
+      saveConfigButton: document.getElementById('saveConfigButton'),
+      healthButton: document.getElementById('healthButton'),
+      listButton: document.getElementById('listButton'),
+      aiConfigButton: document.getElementById('aiConfigButton'),
+      aiSaveButton: document.getElementById('aiSaveButton'),
+      aiTestButton: document.getElementById('aiTestButton'),
+      aiDraftButton: document.getElementById('aiDraftButton'),
+      candidateFileInput: document.getElementById('candidateFileInput'),
+      adminUrlInput: document.getElementById('adminUrlInput'),
+      adminTokenInput: document.getElementById('adminTokenInput'),
+      aiApiUrlInput: document.getElementById('aiApiUrlInput'),
+      aiModelInput: document.getElementById('aiModelInput'),
+      aiApiKeyInput: document.getElementById('aiApiKeyInput'),
+      editionInput: document.getElementById('editionInput'),
+      candidateInput: document.getElementById('candidateInput'),
+      editionList: document.getElementById('editionList'),
+      dateMetric: document.getElementById('dateMetric'),
+      itemMetric: document.getElementById('itemMetric'),
+      sourceMetric: document.getElementById('sourceMetric'),
+      statusMetric: document.getElementById('statusMetric'),
+      aiProviderMetric: document.getElementById('aiProviderMetric'),
+      aiKeyMetric: document.getElementById('aiKeyMetric'),
+      aiStatusPill: document.getElementById('aiStatusPill'),
+      aiModelText: document.getElementById('aiModelText'),
+      log: document.getElementById('log'),
+      toast: document.getElementById('toast')
+    };
+
+    function toast(text) {
+      nodes.toast.textContent = text;
+      nodes.toast.classList.add('show');
+      window.clearTimeout(toast.timer);
+      toast.timer = window.setTimeout(() => nodes.toast.classList.remove('show'), 1600);
+    }
+
+    function log(message) {
+      const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      nodes.log.textContent = `[${time}] ${message}\n${nodes.log.textContent}`;
+    }
+
+    function saveConfig() {
+      localStorage.setItem('dailyten.adminUrl', nodes.adminUrlInput.value.trim());
+      localStorage.setItem('dailyten.adminToken', nodes.adminTokenInput.value.trim());
+      toast('配置已保存');
+    }
+
+    function loadConfig() {
+      nodes.adminUrlInput.value = localStorage.getItem('dailyten.adminUrl') || defaultAdminUrl;
+      nodes.adminTokenInput.value = localStorage.getItem('dailyten.adminToken') || '';
+    }
+
+    function adminUrl(path = '') {
+      return `${nodes.adminUrlInput.value.trim().replace(/\/$/, '')}${path}`;
+    }
+
+    async function adminFetch(path, options = {}) {
+      const token = nodes.adminTokenInput.value.trim();
+      if (!token) {
+        throw new Error('请先填写 ADMIN_TOKEN');
+      }
+      const response = await fetch(adminUrl(path), {
+        ...options,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+          ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+          ...(options.headers || {})
+        }
+      });
+      const text = await response.text();
+      const body = text ? JSON.parse(text) : null;
+      if (!response.ok) {
+        throw new Error(body?.message || body?.error || `HTTP ${response.status}`);
+      }
+      return body;
+    }
+
+    function parseEdition() {
+      const text = nodes.editionInput.value.trim();
+      if (!text) {
+        throw new Error('请先导入或粘贴每日版本 JSON');
+      }
+      return JSON.parse(text);
+    }
+
+    function parseCandidates() {
+      const text = nodes.candidateInput.value.trim();
+      if (!text) {
+        throw new Error('请先导入或粘贴候选池 JSON');
+      }
+      return JSON.parse(text);
+    }
+
+    function updateMetrics() {
+      try {
+        const payload = parseEdition();
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        const sources = new Set(items.map((item) => item.article?.source?.name).filter(Boolean));
+        nodes.dateMetric.textContent = payload.edition?.date || '-';
+        nodes.itemMetric.textContent = String(items.length);
+        nodes.sourceMetric.textContent = String(sources.size);
+        nodes.statusMetric.textContent = payload.edition?.status || '-';
+      } catch (_) {
+        nodes.dateMetric.textContent = '-';
+        nodes.itemMetric.textContent = '0';
+        nodes.sourceMetric.textContent = '0';
+        nodes.statusMetric.textContent = '-';
+      }
+    }
+
+    async function readFile(file) {
+      nodes.editionInput.value = await file.text();
+      updateMetrics();
+      toast('每日 JSON 已导入');
+    }
+
+    async function readCandidateFile(file) {
+      nodes.candidateInput.value = await file.text();
+      const payload = parseCandidates();
+      log(`候选池已导入: ${payload.date || '-'} / ${(payload.candidates || []).length} 条`);
+      toast('候选池已导入');
+    }
+
+    async function health() {
+      const result = await adminFetch('/health');
+      log(`连接正常: ${JSON.stringify(result)}`);
+      toast('连接正常');
+    }
+
+    function renderAiConfig(config) {
+      nodes.aiProviderMetric.textContent = config?.provider || '-';
+      nodes.aiKeyMetric.textContent = config?.hasApiKey ? '已配置' : '未配置';
+      nodes.aiStatusPill.textContent = config?.hasApiKey ? '可测试' : '缺少 Key';
+      nodes.aiStatusPill.classList.toggle('ok', Boolean(config?.hasApiKey));
+      nodes.aiModelText.textContent = `模型：${config?.model || '-'}`;
+      nodes.aiApiUrlInput.value = config?.apiUrl || 'https://api.deepseek.com';
+      nodes.aiModelInput.value = config?.model || 'deepseek-v4-flash';
+      nodes.aiApiKeyInput.value = '';
+      nodes.aiApiKeyInput.placeholder = config?.keyPreview
+        ? `已保存 ${config.keyPreview}，留空不修改`
+        : '填写 DeepSeek API Key';
+    }
+
+    async function loadAiConfig() {
+      const result = await adminFetch('/ai/config');
+      renderAiConfig(result.config);
+      log(`AI 配置: ${JSON.stringify(result.config)}`);
+      toast('AI 配置已读取');
+    }
+
+    async function saveAiConfig() {
+      const payload = {
+        apiUrl: nodes.aiApiUrlInput.value.trim(),
+        model: nodes.aiModelInput.value.trim(),
+        apiKey: nodes.aiApiKeyInput.value.trim()
+      };
+      const result = await adminFetch('/ai/config', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      renderAiConfig(result.config);
+      log(`AI API 已保存到后端: ${JSON.stringify(result.config)}`);
+      toast('AI API 已保存');
+    }
+
+    async function testAi() {
+      const result = await adminFetch('/ai/test', { method: 'POST' });
+      renderAiConfig(result.config);
+      log(`AI 测试通过: ${JSON.stringify(result.response || result)}`);
+      toast('AI 连接正常');
+    }
+
+    async function generateAiDraft() {
+      const payload = parseCandidates();
+      const result = await adminFetch('/ai/draft', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      nodes.editionInput.value = JSON.stringify(result.draft, null, 2);
+      updateMetrics();
+      log(`AI 草稿已生成: ${(result.aiReviewNotes || []).join(' | ') || '无额外备注'}`);
+      toast('AI 草稿已填入发布框');
+    }
+
+    async function validateRemote() {
+      const payload = parseEdition();
+      const result = await adminFetch('/editions/publish?dryRun=true', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      log(`远程校验通过: ${JSON.stringify(result)}`);
+      toast('远程校验通过');
+    }
+
+    async function publishEdition() {
+      const payload = parseEdition();
+      const confirmed = window.confirm(`确认写入 ${payload.edition?.date || ''} 的每日版本？状态：${payload.edition?.status || 'published'}`);
+      if (!confirmed) {
+        return;
+      }
+      const result = await adminFetch('/editions/publish', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      log(`发布完成: ${JSON.stringify(result)}`);
+      toast('发布完成');
+      await listEditions();
+    }
+
+    async function listEditions() {
+      const result = await adminFetch('/editions?limit=12');
+      const editions = result.editions || [];
+      if (editions.length === 0) {
+        nodes.editionList.innerHTML = '<p class="empty">暂无版本</p>';
+        return;
+      }
+      nodes.editionList.innerHTML = editions.map((edition) => `
+        <article class="card">
+          <div class="meta">
+            <span class="tag ${edition.status === 'published' ? 'published' : 'draft'}">${escapeHtml(edition.status)}</span>
+            <span>${escapeHtml(edition.region)} / ${escapeHtml(edition.language)}</span>
+          </div>
+          <h3>${escapeHtml(edition.edition_date)}</h3>
+          <p class="sub">${escapeHtml(edition.statement || '')}</p>
+        </article>
+      `).join('');
+      log(`已加载最近版本 ${editions.length} 个`);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    nodes.fileInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) readFile(file);
+      event.target.value = '';
+    });
+    nodes.candidateFileInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        readCandidateFile(file).catch((error) => {
+          log(`候选池导入失败: ${error.message}`);
+          toast('候选池导入失败');
+        });
+      }
+      event.target.value = '';
+    });
+    nodes.editionInput.addEventListener('input', updateMetrics);
+    nodes.saveConfigButton.addEventListener('click', saveConfig);
+    nodes.healthButton.addEventListener('click', () => health().catch((error) => {
+      log(`连接失败: ${error.message}`);
+      toast('连接失败');
+    }));
+    nodes.validateButton.addEventListener('click', () => validateRemote().catch((error) => {
+      log(`校验失败: ${error.message}`);
+      toast('校验失败');
+    }));
+    nodes.publishButton.addEventListener('click', () => publishEdition().catch((error) => {
+      log(`发布失败: ${error.message}`);
+      toast('发布失败');
+    }));
+    nodes.listButton.addEventListener('click', () => listEditions().catch((error) => {
+      log(`加载失败: ${error.message}`);
+      toast('加载失败');
+    }));
+    nodes.aiConfigButton.addEventListener('click', () => loadAiConfig().catch((error) => {
+      log(`AI 配置读取失败: ${error.message}`);
+      toast('AI 配置读取失败');
+    }));
+    nodes.aiSaveButton.addEventListener('click', () => saveAiConfig().catch((error) => {
+      log(`AI API 保存失败: ${error.message}`);
+      toast('AI API 保存失败');
+    }));
+    nodes.aiTestButton.addEventListener('click', () => testAi().catch((error) => {
+      log(`AI 测试失败: ${error.message}`);
+      toast('AI 测试失败');
+    }));
+    nodes.aiDraftButton.addEventListener('click', () => generateAiDraft().catch((error) => {
+      log(`AI 草稿生成失败: ${error.message}`);
+      toast('AI 草稿生成失败');
+    }));
+
+    loadConfig();
+    updateMetrics();
+    loadAiConfig().catch(() => {});
+  </script>
+</body>
+</html>

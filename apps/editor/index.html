@@ -1,0 +1,911 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>今日十条审核台</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f6f3;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #667078;
+      --line: #d8ded6;
+      --green: #2e6f57;
+      --green-soft: #e4eee9;
+      --blue: #2d5f8f;
+      --blue-soft: #e7eef7;
+      --amber: #8a5a18;
+      --amber-soft: #f2e8d7;
+      --red: #a94442;
+      --red-soft: #f5e5e3;
+      --shadow: 0 12px 28px rgba(32, 33, 36, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.5;
+    }
+    button, input, select, textarea {
+      font: inherit;
+    }
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: var(--green);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+    .brand p {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .file-button, .primary, .secondary, .danger, .icon-button {
+      min-height: 38px;
+      border-radius: 8px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .file-button, .primary {
+      background: var(--green);
+      color: #fff;
+    }
+    .secondary {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+    .danger {
+      background: var(--red-soft);
+      color: var(--red);
+    }
+    .icon-button {
+      width: 38px;
+      padding: 0;
+      background: #eef1ed;
+      color: var(--text);
+    }
+    .file-button input {
+      display: none;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 420px;
+      gap: 18px;
+      padding: 18px;
+      align-items: start;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+    .panel-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+    .count {
+      min-width: 54px;
+      height: 30px;
+      padding: 0 10px;
+      border-radius: 8px;
+      display: inline-grid;
+      place-items: center;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .filters {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) 150px 150px;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      outline: 0;
+    }
+    input, select {
+      height: 38px;
+      padding: 0 11px;
+    }
+    textarea {
+      min-height: 190px;
+      padding: 12px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(46, 111, 87, 0.12);
+    }
+    .candidate-list {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      max-height: calc(100vh - 224px);
+      overflow: auto;
+    }
+    .candidate, .pick {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+    }
+    .candidate {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+    .candidate.selected {
+      border-color: var(--green);
+      background: #fbfdfb;
+    }
+    .rank {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #eef1ed;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .candidate.selected .rank {
+      background: var(--green);
+      color: #fff;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .tag {
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-weight: 800;
+    }
+    .tag.blue {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+    .title {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+    .summary {
+      margin: 8px 0 0;
+      color: #3d454d;
+      font-size: 13px;
+    }
+    .mini {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .pick-list {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      max-height: 46vh;
+      overflow: auto;
+    }
+    .pick {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .pick-title {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+    .position {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: var(--green);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .side-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .status {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .metric {
+      border-radius: 8px;
+      padding: 10px;
+      background: #f7f8f6;
+      min-width: 0;
+    }
+    .metric strong {
+      display: block;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .form {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .output {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+    }
+    .empty {
+      margin: 0;
+      padding: 26px 14px;
+      color: var(--muted);
+      text-align: center;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: #fafbf9;
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+      z-index: 20;
+    }
+    .toast.show {
+      opacity: 1;
+    }
+    @media (max-width: 1050px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .candidate-list, .pick-list {
+        max-height: none;
+      }
+    }
+    @media (max-width: 680px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 14px;
+      }
+      .toolbar {
+        width: 100%;
+        justify-content: stretch;
+      }
+      .toolbar > * {
+        flex: 1;
+      }
+      .layout {
+        padding: 12px;
+      }
+      .filters, .form-row, .status {
+        grid-template-columns: 1fr;
+      }
+      .candidate {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">10</div>
+        <div>
+          <h1>今日十条审核台</h1>
+          <p id="sourceMeta">未载入候选池</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <label class="file-button">
+          导入候选
+          <input id="fileInput" type="file" accept="application/json,.json">
+        </label>
+        <button id="sampleButton" class="secondary" type="button">示例</button>
+        <button id="autoButton" class="secondary" type="button">自动草稿</button>
+        <button id="downloadButton" class="primary" type="button">导出 JSON</button>
+        <button id="clearButton" class="danger" type="button">清空</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>候选池</h2>
+          <span id="candidateCount" class="count">0</span>
+        </div>
+        <div class="filters">
+          <input id="searchInput" type="search" placeholder="搜索标题、摘要、来源">
+          <select id="categoryFilter">
+            <option value="">全部类别</option>
+          </select>
+          <select id="sourceFilter">
+            <option value="">全部来源</option>
+          </select>
+        </div>
+        <div id="candidateList" class="candidate-list">
+          <p class="empty">选择 data/candidates.日期.json</p>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-head">
+          <h2>每日版本</h2>
+          <span id="selectedCount" class="count">0 / 10</span>
+        </div>
+        <div class="status">
+          <div class="metric"><strong id="sourceMetric">0</strong><span>来源</span></div>
+          <div class="metric"><strong id="categoryMetric">0</strong><span>类别</span></div>
+          <div class="metric"><strong id="warningMetric">0</strong><span>提示</span></div>
+        </div>
+        <div class="form">
+          <div class="form-row">
+            <input id="dateInput" type="date">
+            <select id="statusInput">
+              <option value="draft">draft</option>
+              <option value="published">published</option>
+            </select>
+          </div>
+          <textarea id="statementInput">本期新闻按公共重要性、来源多样性和主题配额生成，不基于个人阅读行为排序。</textarea>
+        </div>
+        <div id="pickList" class="pick-list">
+          <p class="empty">从候选池选择 10 条</p>
+        </div>
+        <div class="output">
+          <textarea id="jsonOutput" readonly placeholder="生成的每日 JSON"></textarea>
+          <button id="copyButton" class="secondary" type="button">复制 JSON</button>
+        </div>
+      </aside>
+    </main>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const labels = {
+      domestic: '国内',
+      international: '国际',
+      finance: '财经',
+      technology: '科技',
+      health: '健康',
+      education: '教育',
+      society: '社会',
+      sports: '体育',
+      perspective: '视角'
+    };
+    const categoryOrder = ['domestic', 'international', 'finance', 'technology', 'health', 'education', 'society', 'sports', 'perspective'];
+    const categoryLimits = { domestic: 2, international: 2, finance: 1, technology: 1, health: 1, education: 1, society: 2, sports: 1, perspective: 1 };
+    const state = {
+      date: '',
+      candidates: [],
+      selectedIds: []
+    };
+
+    const nodes = {
+      fileInput: document.getElementById('fileInput'),
+      sampleButton: document.getElementById('sampleButton'),
+      autoButton: document.getElementById('autoButton'),
+      downloadButton: document.getElementById('downloadButton'),
+      clearButton: document.getElementById('clearButton'),
+      copyButton: document.getElementById('copyButton'),
+      sourceMeta: document.getElementById('sourceMeta'),
+      candidateCount: document.getElementById('candidateCount'),
+      selectedCount: document.getElementById('selectedCount'),
+      candidateList: document.getElementById('candidateList'),
+      pickList: document.getElementById('pickList'),
+      searchInput: document.getElementById('searchInput'),
+      categoryFilter: document.getElementById('categoryFilter'),
+      sourceFilter: document.getElementById('sourceFilter'),
+      dateInput: document.getElementById('dateInput'),
+      statusInput: document.getElementById('statusInput'),
+      statementInput: document.getElementById('statementInput'),
+      jsonOutput: document.getElementById('jsonOutput'),
+      sourceMetric: document.getElementById('sourceMetric'),
+      categoryMetric: document.getElementById('categoryMetric'),
+      warningMetric: document.getElementById('warningMetric'),
+      toast: document.getElementById('toast')
+    };
+
+    function todayChina() {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Shanghai',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date());
+    }
+
+    function chinaDateTime() {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Shanghai',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).formatToParts(new Date()).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+      }, {});
+      return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}+08:00`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function formatTime(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return value || '';
+      }
+      return new Intl.DateTimeFormat('zh-CN', {
+        timeZone: 'Asia/Shanghai',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    }
+
+    function normalize(value) {
+      return String(value ?? '').trim();
+    }
+
+    function selectedCandidates() {
+      const byId = new Map(state.candidates.map((candidate) => [candidate.candidateId, candidate]));
+      return state.selectedIds.map((id) => byId.get(id)).filter(Boolean);
+    }
+
+    function visibleCandidates() {
+      const query = normalize(nodes.searchInput.value).toLowerCase();
+      const category = nodes.categoryFilter.value;
+      const source = nodes.sourceFilter.value;
+      return state.candidates.filter((candidate) => {
+        const haystack = [
+          candidate.title,
+          candidate.summary,
+          candidate.source?.name,
+          candidate.category
+        ].join(' ').toLowerCase();
+        return (!query || haystack.includes(query)) &&
+          (!category || candidate.category === category) &&
+          (!source || candidate.source?.name === source);
+      });
+    }
+
+    function setToast(text) {
+      nodes.toast.textContent = text;
+      nodes.toast.classList.add('show');
+      window.clearTimeout(setToast.timer);
+      setToast.timer = window.setTimeout(() => nodes.toast.classList.remove('show'), 1600);
+    }
+
+    function loadCandidates(payload) {
+      state.date = payload.date || todayChina();
+      state.candidates = (payload.candidates || []).map((candidate, index) => ({
+        candidateId: Number(candidate.candidateId || index + 1),
+        title: normalize(candidate.title),
+        summary: normalize(candidate.summary),
+        url: normalize(candidate.url),
+        category: normalize(candidate.category || 'society'),
+        topicKey: normalize(candidate.topicKey || 'news'),
+        publishedAt: normalize(candidate.publishedAt),
+        source: {
+          name: normalize(candidate.source?.name || '未知来源'),
+          homepageUrl: normalize(candidate.source?.homepageUrl || candidate.source?.homepage_url || ''),
+          feedUrl: normalize(candidate.source?.feedUrl || candidate.source?.feed_url || ''),
+          crawlType: normalize(candidate.source?.crawlType || candidate.source?.crawl_type || 'rss'),
+          reliabilityNote: normalize(candidate.source?.reliabilityNote || candidate.source?.reliability_note || ''),
+          licenseNote: normalize(candidate.source?.licenseNote || candidate.source?.license_note || '')
+        },
+        selectionHint: normalize(candidate.selectionHint || '按公共重要性、来源多样性和主题配额入选。'),
+        priority: Number(candidate.priority || 50)
+      }));
+      state.selectedIds = [];
+      nodes.dateInput.value = state.date;
+      nodes.sourceMeta.textContent = `${state.date} / ${state.candidates.length} 条候选`;
+      buildFilters();
+      render();
+    }
+
+    function buildFilters() {
+      const categories = Array.from(new Set(state.candidates.map((item) => item.category))).sort();
+      const sources = Array.from(new Set(state.candidates.map((item) => item.source.name))).sort();
+      nodes.categoryFilter.innerHTML = '<option value="">全部类别</option>' + categories.map((category) => {
+        return `<option value="${escapeHtml(category)}">${escapeHtml(labels[category] || category)}</option>`;
+      }).join('');
+      nodes.sourceFilter.innerHTML = '<option value="">全部来源</option>' + sources.map((source) => {
+        return `<option value="${escapeHtml(source)}">${escapeHtml(source)}</option>`;
+      }).join('');
+    }
+
+    function toggleCandidate(id) {
+      const current = state.selectedIds.indexOf(id);
+      if (current >= 0) {
+        state.selectedIds.splice(current, 1);
+      } else if (state.selectedIds.length < 10) {
+        state.selectedIds.push(id);
+      } else {
+        setToast('已选满 10 条');
+      }
+      render();
+    }
+
+    function moveSelected(index, delta) {
+      const next = index + delta;
+      if (next < 0 || next >= state.selectedIds.length) {
+        return;
+      }
+      const copy = [...state.selectedIds];
+      const [item] = copy.splice(index, 1);
+      copy.splice(next, 0, item);
+      state.selectedIds = copy;
+      render();
+    }
+
+    function removeSelected(index) {
+      state.selectedIds.splice(index, 1);
+      render();
+    }
+
+    function countBy(items, getter) {
+      const map = new Map();
+      for (const item of items) {
+        const key = getter(item);
+        map.set(key, (map.get(key) || 0) + 1);
+      }
+      return map;
+    }
+
+    function warnings(items) {
+      const result = [];
+      const sourceCounts = countBy(items, (item) => item.source.name);
+      const categoryCounts = countBy(items, (item) => item.category);
+      const topicCounts = countBy(items, (item) => item.topicKey);
+      for (const [source, count] of sourceCounts) {
+        if (count > 3) result.push(`${source} 超过 3 条`);
+      }
+      for (const [category, count] of categoryCounts) {
+        if (count > 3) result.push(`${labels[category] || category} 超过 3 条`);
+      }
+      for (const [topic, count] of topicCounts) {
+        if (count > 2) result.push(`${topic} 超过 2 条`);
+      }
+      for (const item of items) {
+        if (item.summary.length < 20) result.push(`${item.candidateId} 摘要偏短`);
+        if (!item.url.startsWith('http')) result.push(`${item.candidateId} 链接异常`);
+      }
+      if (items.length !== 10) result.push('数量不是 10 条');
+      return result;
+    }
+
+    function autoDraft() {
+      const picked = [];
+      const sourceCounts = new Map();
+      const topicCounts = new Map();
+      const categoryCounts = new Map();
+      const seen = new Set();
+      const candidates = [...state.candidates].sort((a, b) => {
+        const priority = b.priority - a.priority;
+        return priority || Date.parse(b.publishedAt) - Date.parse(a.publishedAt);
+      });
+
+      function canPick(candidate, options) {
+        const sourceCount = sourceCounts.get(candidate.source.name) || 0;
+        const topicCount = topicCounts.get(candidate.topicKey) || 0;
+        const categoryCount = categoryCounts.get(candidate.category) || 0;
+        return !seen.has(candidate.url) &&
+          (!options.source || sourceCount < 3) &&
+          (!options.topic || topicCount < 2) &&
+          (!options.category || categoryCount < (categoryLimits[candidate.category] || 1));
+      }
+
+      function add(candidate) {
+        picked.push(candidate);
+        seen.add(candidate.url);
+        sourceCounts.set(candidate.source.name, (sourceCounts.get(candidate.source.name) || 0) + 1);
+        topicCounts.set(candidate.topicKey, (topicCounts.get(candidate.topicKey) || 0) + 1);
+        categoryCounts.set(candidate.category, (categoryCounts.get(candidate.category) || 0) + 1);
+      }
+
+      for (const category of categoryOrder) {
+        const candidate = candidates.find((item) => item.category === category && canPick(item, { source: true, topic: true, category: true }));
+        if (candidate && picked.length < 10) add(candidate);
+      }
+      for (const options of [
+        { source: true, topic: true, category: false },
+        { source: true, topic: false, category: false },
+        { source: false, topic: false, category: false }
+      ]) {
+        for (const candidate of candidates) {
+          if (picked.length >= 10) break;
+          if (canPick(candidate, options)) add(candidate);
+        }
+      }
+      state.selectedIds = picked.slice(0, 10).map((item) => item.candidateId);
+      render();
+    }
+
+    function editionJson() {
+      const items = selectedCandidates().map((candidate, index) => ({
+        position: index + 1,
+        selectionReason: candidate.selectionHint,
+        article: {
+          title: candidate.title,
+          summary: candidate.summary,
+          url: candidate.url,
+          category: candidate.category,
+          topicKey: candidate.topicKey,
+          publishedAt: candidate.publishedAt,
+          source: {
+            name: candidate.source.name,
+            homepageUrl: candidate.source.homepageUrl,
+            feedUrl: candidate.source.feedUrl,
+            crawlType: candidate.source.crawlType,
+            reliabilityNote: candidate.source.reliabilityNote,
+            licenseNote: candidate.source.licenseNote
+          }
+        }
+      }));
+      return {
+        edition: {
+          date: nodes.dateInput.value || state.date || todayChina(),
+          region: 'cn',
+          language: 'zh-CN',
+          status: nodes.statusInput.value,
+          publishedAt: nodes.statusInput.value === 'published' ? chinaDateTime() : null,
+          statement: normalize(nodes.statementInput.value)
+        },
+        items
+      };
+    }
+
+    function renderCandidates() {
+      const selected = new Set(state.selectedIds);
+      const candidates = visibleCandidates();
+      nodes.candidateCount.textContent = String(candidates.length);
+      if (candidates.length === 0) {
+        nodes.candidateList.innerHTML = '<p class="empty">没有匹配候选</p>';
+        return;
+      }
+      nodes.candidateList.innerHTML = candidates.map((candidate) => {
+        const isSelected = selected.has(candidate.candidateId);
+        return `
+          <article class="candidate ${isSelected ? 'selected' : ''}">
+            <button class="rank" type="button" data-action="toggle" data-id="${candidate.candidateId}">${candidate.candidateId}</button>
+            <div>
+              <div class="meta">
+                <span class="tag">${escapeHtml(labels[candidate.category] || candidate.category)}</span>
+                <span>${escapeHtml(candidate.source.name)}</span>
+                <span>${escapeHtml(formatTime(candidate.publishedAt))}</span>
+              </div>
+              <h3 class="title">${escapeHtml(candidate.title)}</h3>
+              <p class="summary">${escapeHtml(candidate.summary || '无摘要')}</p>
+              <p class="mini">${escapeHtml(candidate.url)}</p>
+            </div>
+            <button class="${isSelected ? 'danger' : 'secondary'}" type="button" data-action="toggle" data-id="${candidate.candidateId}">
+              ${isSelected ? '移除' : '选择'}
+            </button>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderPicks() {
+      const items = selectedCandidates();
+      nodes.selectedCount.textContent = `${items.length} / 10`;
+      const issueList = warnings(items);
+      nodes.sourceMetric.textContent = String(new Set(items.map((item) => item.source.name)).size);
+      nodes.categoryMetric.textContent = String(new Set(items.map((item) => item.category)).size);
+      nodes.warningMetric.textContent = String(issueList.length);
+      if (items.length === 0) {
+        nodes.pickList.innerHTML = '<p class="empty">从候选池选择 10 条</p>';
+      } else {
+        nodes.pickList.innerHTML = items.map((item, index) => `
+          <article class="pick">
+            <div class="position">${index + 1}</div>
+            <div>
+              <p class="pick-title">${escapeHtml(item.title)}</p>
+              <p class="mini">${escapeHtml(labels[item.category] || item.category)} / ${escapeHtml(item.source.name)}</p>
+            </div>
+            <div class="side-actions">
+              <button class="icon-button" type="button" data-pick-action="up" data-index="${index}" title="上移">↑</button>
+              <button class="icon-button" type="button" data-pick-action="down" data-index="${index}" title="下移">↓</button>
+              <button class="icon-button" type="button" data-pick-action="remove" data-index="${index}" title="移除">×</button>
+            </div>
+          </article>
+        `).join('');
+      }
+      nodes.jsonOutput.value = JSON.stringify(editionJson(), null, 2);
+    }
+
+    function render() {
+      renderCandidates();
+      renderPicks();
+    }
+
+    async function readFile(file) {
+      const text = await file.text();
+      loadCandidates(JSON.parse(text));
+      setToast('候选池已载入');
+    }
+
+    function downloadJson() {
+      const payload = editionJson();
+      const issues = warnings(selectedCandidates());
+      if (issues.length > 0) {
+        setToast(issues[0]);
+        if (payload.items.length !== 10) return;
+      }
+      const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `daily-edition.${payload.edition.date}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    nodes.fileInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) readFile(file);
+      event.target.value = '';
+    });
+    nodes.sampleButton.addEventListener('click', async () => {
+      const response = await fetch('sample-candidates.json', { cache: 'no-store' });
+      loadCandidates(await response.json());
+      setToast('示例已载入');
+    });
+    nodes.candidateList.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action="toggle"]');
+      if (button) toggleCandidate(Number(button.dataset.id));
+    });
+    nodes.pickList.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-pick-action]');
+      if (!button) return;
+      const index = Number(button.dataset.index);
+      if (button.dataset.pickAction === 'up') moveSelected(index, -1);
+      if (button.dataset.pickAction === 'down') moveSelected(index, 1);
+      if (button.dataset.pickAction === 'remove') removeSelected(index);
+    });
+    nodes.searchInput.addEventListener('input', renderCandidates);
+    nodes.categoryFilter.addEventListener('change', renderCandidates);
+    nodes.sourceFilter.addEventListener('change', renderCandidates);
+    nodes.dateInput.addEventListener('change', renderPicks);
+    nodes.statusInput.addEventListener('change', renderPicks);
+    nodes.statementInput.addEventListener('input', renderPicks);
+    nodes.autoButton.addEventListener('click', autoDraft);
+    nodes.clearButton.addEventListener('click', () => {
+      state.selectedIds = [];
+      render();
+    });
+    nodes.downloadButton.addEventListener('click', downloadJson);
+    nodes.copyButton.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(nodes.jsonOutput.value);
+      setToast('JSON 已复制');
+    });
+
+    nodes.dateInput.value = todayChina();
+    render();
+  </script>
+</body>
+</html>

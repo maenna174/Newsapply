@@ -104,16 +104,43 @@ npx supabase secrets set DAILYTEN_SUPABASE_SECRET_KEY=<your-service-role-key>
 
 不要把 `service_role` 放到 HarmonyOS、iOS、Android 客户端。
 
+如果要使用管理后台，再设置一个管理 token：
+
+```bash
+openssl rand -hex 32
+npx supabase secrets set DAILYTEN_ADMIN_TOKEN=<generated-token>
+npx supabase functions deploy admin
+```
+
+管理后台使用 `DAILYTEN_ADMIN_TOKEN` 调用后台 API，不直接接触 `service_role`。
+
 ## 第 7 步：插入一版测试数据
 
-第一版可以先在 Supabase Dashboard 的 SQL Editor 里手动插入：
+第一版现在优先使用本地发布脚本，不需要手动拼 SQL。
 
-1. `sources`
-2. `articles`
-3. `daily_editions`
-4. `daily_edition_items`
+```bash
+node scripts/fetch-candidates.mjs --date 2026-06-02
+node scripts/list-candidates.mjs data/candidates.2026-06-02.json
+node scripts/make-edition-from-candidates.mjs data/candidates.2026-06-02.json --pick 3,7,11,14,18,21,25,29,31,34
+node scripts/publish-edition.mjs data/daily-edition.2026-06-02.json --dry-run
+```
 
-只要有一条 `daily_editions.status = 'published'`，App 就可以通过 `/editions/today` 读取。
+确认 10 条新闻无误后发布：
+
+```bash
+SUPABASE_URL=https://rrufsrfkmypxvwyggtwm.supabase.co \
+DAILYTEN_SUPABASE_SECRET_KEY=<your-service-role-key> \
+node scripts/publish-edition.mjs data/daily-edition.2026-06-02.json --publish
+```
+
+脚本会写入或更新：
+
+- `sources`
+- `articles`
+- `daily_editions`
+- `daily_edition_items`
+
+同一天、同地区、同语言重复发布会覆盖同一期的 10 条排序。
 
 ## 第 8 步：HM 端调用
 

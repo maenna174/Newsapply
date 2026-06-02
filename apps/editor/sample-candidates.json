@@ -1,0 +1,202 @@
+{
+  "generatedAt": "2026-06-02T08:00:00.000Z",
+  "date": "2026-06-02",
+  "sourceFile": "data/rss-sources.json",
+  "rules": {
+    "personalized": false,
+    "note": "候选池按公共来源优先级和发布时间整理，不使用用户画像、点击、停留、收藏或搜索历史。"
+  },
+  "errors": [],
+  "candidates": [
+    {
+      "candidateId": 1,
+      "title": "多部门发布公共服务数字化更新安排",
+      "summary": "相关部门提出继续完善线上办事、适老化服务和跨地区协同，重点提升普通用户办理基础公共服务的便利性。",
+      "url": "https://example.com/editor/001",
+      "category": "domestic",
+      "topicKey": "public-service",
+      "publishedAt": "2026-06-02T07:20:00+08:00",
+      "source": {
+        "name": "示例来源",
+        "homepageUrl": "https://example.com/",
+        "feedUrl": "https://example.com/rss.xml",
+        "crawlType": "rss",
+        "reliabilityNote": "示例来源，正式使用时替换为真实媒体或机构说明。",
+        "licenseNote": "正式使用前确认授权。"
+      },
+      "selectionHint": "涉及国内公共事务，影响范围较广，适合进入每日公共简报。",
+      "priority": 80
+    },
+    {
+      "candidateId": 2,
+      "title": "国际组织呼吁加强极端天气早期预警",
+      "summary": "近期多地极端天气风险上升，国际组织建议提高预警覆盖率，并加强城市基础设施韧性建设。",
+      "url": "https://example.com/editor/002",
+      "category": "international",
+      "topicKey": "weather-warning",
+      "publishedAt": "2026-06-02T07:10:00+08:00",
+      "source": {
+        "name": "United Nations News",
+        "homepageUrl": "https://news.un.org/en/",
+        "feedUrl": "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+        "crawlType": "rss",
+        "reliabilityNote": "国际组织新闻来源。",
+        "licenseNote": "遵循来源条款，只保存元数据。"
+      },
+      "selectionHint": "补充国际公共议题，避免每日版本只覆盖单一区域。",
+      "priority": 70
+    },
+    {
+      "candidateId": 3,
+      "title": "主要经济体公布通胀与就业观察",
+      "summary": "多国最新经济数据释放出不同信号，食品、能源和服务价格仍是影响居民感受的重要变量。",
+      "url": "https://example.com/editor/003",
+      "category": "finance",
+      "topicKey": "economic-data",
+      "publishedAt": "2026-06-02T06:50:00+08:00",
+      "source": {
+        "name": "BBC Business",
+        "homepageUrl": "https://www.bbc.com/business",
+        "feedUrl": "https://feeds.bbci.co.uk/news/business/rss.xml",
+        "crawlType": "rss",
+        "reliabilityNote": "国际财经新闻候选来源。",
+        "licenseNote": "遵循来源条款，只保存元数据。"
+      },
+      "selectionHint": "财经信息影响就业、物价或消费预期，具备公共参考价值。",
+      "priority": 65
+    },
+    {
+      "candidateId": 4,
+      "title": "科研机构公布地球观测任务进展",
+      "summary": "新的观测任务将提升对海洋、冰川和森林变化的跟踪能力，为气候研究提供长期数据。",
+      "url": "https://example.com/editor/004",
+      "category": "technology",
+      "topicKey": "earth-observation",
+      "publishedAt": "2026-06-02T06:40:00+08:00",
+      "source": {
+        "name": "NASA",
+        "homepageUrl": "https://www.nasa.gov/",
+        "feedUrl": "https://www.nasa.gov/news-release/feed/",
+        "crawlType": "rss",
+        "reliabilityNote": "科学、航天、地球观测候选来源。",
+        "licenseNote": "遵循来源条款，只保存元数据。"
+      },
+      "selectionHint": "科技或科学议题用于平衡每日信息结构，拓宽公共视野。",
+      "priority": 62
+    },
+    {
+      "candidateId": 5,
+      "title": "基层医疗服务能力建设继续推进",
+      "summary": "社区医疗机构将增加慢病管理、远程咨询和康复服务，帮助缓解大医院门诊压力。",
+      "url": "https://example.com/editor/005",
+      "category": "health",
+      "topicKey": "community-health",
+      "publishedAt": "2026-06-02T06:30:00+08:00",
+      "source": {
+        "name": "示例来源",
+        "homepageUrl": "https://example.com/",
+        "feedUrl": "https://example.com/rss.xml",
+        "crawlType": "rss",
+        "reliabilityNote": "示例来源，正式使用时替换为真实媒体或机构说明。",
+        "licenseNote": "正式使用前确认授权。"
+      },
+      "selectionHint": "健康议题与公众日常生活直接相关，来源需要可靠。",
+      "priority": 62
+    },
+    {
+      "candidateId": 6,
+      "title": "教育部门提示毕业季求职风险",
+      "summary": "相关提醒聚焦虚假招聘、培训贷和个人信息泄露，建议毕业生核验招聘主体和合同条款。",
+      "url": "https://example.com/editor/006",
+      "category": "education",
+      "topicKey": "job-risk",
+      "publishedAt": "2026-06-02T06:20:00+08:00",
+      "source": {
+        "name": "示例来源",
+        "homepageUrl": "https://example.com/",
+        "feedUrl": "https://example.com/rss.xml",
+        "crawlType": "rss",
+        "reliabilityNote": "示例来源，正式使用时替换为真实媒体或机构说明。",
+        "licenseNote": "正式使用前确认授权。"
+      },
+      "selectionHint": "教育或就业信息具备明确公共提醒价值。",
+      "priority": 60
+    },
+    {
+      "candidateId": 7,
+      "title": "城市交通更新计划关注慢行系统",
+      "summary": "多个城市计划优化步行和骑行空间，缓解短途出行拥堵，并改善老城区道路体验。",
+      "url": "https://example.com/editor/007",
+      "category": "society",
+      "topicKey": "city-transport",
+      "publishedAt": "2026-06-02T06:10:00+08:00",
+      "source": {
+        "name": "中国新闻网",
+        "homepageUrl": "https://www.chinanews.com.cn/",
+        "feedUrl": "https://www.chinanews.com.cn/rss/scroll-news.xml",
+        "crawlType": "rss",
+        "reliabilityNote": "中文综合新闻来源。",
+        "licenseNote": "第一版只保存元数据，商业化前确认授权。"
+      },
+      "selectionHint": "社会民生议题覆盖面广，补充公共生活维度。",
+      "priority": 58
+    },
+    {
+      "candidateId": 8,
+      "title": "长期公共卫生议题需要稳定关注",
+      "summary": "公共卫生、疫苗接种和基层医疗并不总是当天最热议题，但持续影响家庭和社区生活。",
+      "url": "https://example.com/editor/008",
+      "category": "perspective",
+      "topicKey": "long-term-health",
+      "publishedAt": "2026-06-02T06:00:00+08:00",
+      "source": {
+        "name": "编辑部",
+        "homepageUrl": "https://example.com/editorial",
+        "feedUrl": "",
+        "crawlType": "manual",
+        "reliabilityNote": "编辑部补充视角。",
+        "licenseNote": "自有内容。"
+      },
+      "selectionHint": "长期议题不应被当天热点完全挤出。",
+      "priority": 55
+    },
+    {
+      "candidateId": 9,
+      "title": "重要赛事进入关键阶段",
+      "summary": "多支队伍将在短时间内连续比赛，体能管理和阵容深度成为影响结果的重要因素。",
+      "url": "https://example.com/editor/009",
+      "category": "sports",
+      "topicKey": "sports-event",
+      "publishedAt": "2026-06-02T05:50:00+08:00",
+      "source": {
+        "name": "BBC Sport",
+        "homepageUrl": "https://www.bbc.com/sport",
+        "feedUrl": "https://feeds.bbci.co.uk/sport/rss.xml",
+        "crawlType": "rss",
+        "reliabilityNote": "体育候选来源。",
+        "licenseNote": "遵循来源条款，只保存元数据。"
+      },
+      "selectionHint": "体育内容用于降低每日版本的信息疲劳，保留轻量公共话题。",
+      "priority": 40
+    },
+    {
+      "candidateId": 10,
+      "title": "公共文化项目扩大开放时段",
+      "summary": "多地公共文化场馆延长开放时间，并增加面向青少年和老年人的公共活动。",
+      "url": "https://example.com/editor/010",
+      "category": "society",
+      "topicKey": "public-culture",
+      "publishedAt": "2026-06-02T05:40:00+08:00",
+      "source": {
+        "name": "中国新闻网",
+        "homepageUrl": "https://www.chinanews.com.cn/",
+        "feedUrl": "https://www.chinanews.com.cn/rss/scroll-news.xml",
+        "crawlType": "rss",
+        "reliabilityNote": "中文综合新闻来源。",
+        "licenseNote": "第一版只保存元数据，商业化前确认授权。"
+      },
+      "selectionHint": "社会民生议题覆盖面广，补充公共生活维度。",
+      "priority": 52
+    }
+  ]
+}
