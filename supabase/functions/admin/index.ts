@@ -818,6 +818,50 @@ async function listEditions(url: URL): Promise<Response> {
   return jsonResponse({ editions });
 }
 
+async function updateEditionStatus(request: Request): Promise<Response> {
+  const body = await request.json() as JsonRecord;
+  const date = normalizeText(body.date);
+  const region = normalizeText(body.region) || 'cn';
+  const language = normalizeText(body.language) || 'zh-CN';
+  const status = normalizeText(body.status) || 'published';
+  const errors: string[] = [];
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    errors.push('date must use YYYY-MM-DD');
+  }
+  if (!allowedStatuses.has(status)) {
+    errors.push('status must be draft or published');
+  }
+  if (errors.length > 0) {
+    return jsonResponse({ error: 'validation_failed', errors }, 422);
+  }
+
+  const rows = await postgrest<JsonRecord[]>(
+    [
+      'daily_editions?',
+      `edition_date=eq.${encodeURIComponent(date)}`,
+      `region=eq.${encodeURIComponent(region)}`,
+      `language=eq.${encodeURIComponent(language)}`,
+      'select=id,edition_date,region,language,status,published_at,updated_at'
+    ].join('&'),
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status,
+        published_at: status === 'published' ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString()
+      })
+    },
+    'return=representation'
+  );
+
+  if (rows.length === 0) {
+    return jsonResponse({ error: 'edition_not_found' }, 404);
+  }
+
+  return jsonResponse({ ok: true, edition: rows[0] });
+}
+
 Deno.serve(async (request: Request) => {
   if (request.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -891,6 +935,10 @@ Deno.serve(async (request: Request) => {
 
     if (request.method === 'GET' && route === 'editions') {
       return await listEditions(url);
+    }
+
+    if (request.method === 'PATCH' && route === 'editions/status') {
+      return await updateEditionStatus(request);
     }
 
     if (request.method === 'POST' && (route === 'editions' || route === 'editions/publish')) {
