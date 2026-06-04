@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto';
 import http from 'node:http';
-import { Pool } from 'pg';
+import pg from 'pg';
+
+const { Pool, types } = pg;
+types.setTypeParser(1082, (value) => value);
 
 const PORT = Number(process.env.PORT || 3000);
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://dailyten:dailyten@127.0.0.1:5432/dailyten';
