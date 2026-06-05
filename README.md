@@ -79,16 +79,6 @@ http://127.0.0.1:4190
 docs/ADMIN_DASHBOARD.md
 ```
 
-## 每日自动草稿
-
-电脑保持开机时，可以让自动任务每天运行：
-
-```bash
-node scripts/daily-auto-draft.mjs
-```
-
-它只生成候选池和待审核草稿，不会自动发布到 Supabase。
-
 ## AI 编辑助理
 
 ```bash

@@ -22,21 +22,6 @@ App / Web 读取 editions API
 
 ## 每天怎么发布
 
-如果使用自动任务，早上会自动完成候选池和草稿生成：
-
-```bash
-node scripts/daily-auto-draft.mjs
-```
-
-它会生成：
-
-```text
-data/candidates.<date>.json
-data/daily-edition.<date>.json
-```
-
-自动任务不会发布到 Supabase。
-
 如果要用 AI 编辑助理生成草稿：
 
 ```bash
