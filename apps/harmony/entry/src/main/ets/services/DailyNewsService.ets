@@ -1,7 +1,7 @@
 import { http } from '@kit.NetworkKit';
 import { EditionMeta, NewsArticle } from '../model/NewsModels';
 
-const DAILY_NEWS_API: string = 'https://rrufsrfkmypxvwyggtwm.supabase.co/functions/v1/editions/today?region=cn&language=zh-CN';
+const DAILY_NEWS_API: string = 'http://121.37.178.24/functions/v1/editions/today?region=cn&language=zh-CN';
 
 interface ApiEdition {
   date?: string;
