@@ -11,6 +11,7 @@
   },
   {
     "name": "BBC News",
+    "enabled": false,
     "homepageUrl": "https://www.bbc.com/news",
     "feedUrl": "https://feeds.bbci.co.uk/news/rss.xml",
     "category": "international",
@@ -21,6 +22,7 @@
   },
   {
     "name": "BBC Business",
+    "enabled": false,
     "homepageUrl": "https://www.bbc.com/business",
     "feedUrl": "https://feeds.bbci.co.uk/news/business/rss.xml",
     "category": "finance",
@@ -31,6 +33,7 @@
   },
   {
     "name": "BBC Technology",
+    "enabled": false,
     "homepageUrl": "https://www.bbc.com/innovation/technology",
     "feedUrl": "https://feeds.bbci.co.uk/news/technology/rss.xml",
     "category": "technology",
@@ -41,6 +44,7 @@
   },
   {
     "name": "BBC Health",
+    "enabled": false,
     "homepageUrl": "https://www.bbc.com/news/health",
     "feedUrl": "https://feeds.bbci.co.uk/news/health/rss.xml",
     "category": "health",
@@ -70,7 +74,167 @@
     "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
   },
   {
+    "name": "China Daily China",
+    "enabled": false,
+    "homepageUrl": "https://www.chinadaily.com.cn/china/",
+    "feedUrl": "http://www.chinadaily.com.cn/rss/china_rss.xml",
+    "category": "domestic",
+    "crawlType": "rss",
+    "priority": 64,
+    "reliabilityNote": "China Daily 官方 RSS，补充国内公共事务英文候选。",
+    "licenseNote": "RSS 页面说明个人和非营利用途免费；本项目只保存元数据和原文链接。"
+  },
+  {
+    "name": "China Daily World",
+    "enabled": false,
+    "homepageUrl": "https://www.chinadaily.com.cn/world/",
+    "feedUrl": "http://www.chinadaily.com.cn/rss/world_rss.xml",
+    "category": "international",
+    "crawlType": "rss",
+    "priority": 63,
+    "reliabilityNote": "China Daily 官方 RSS，补充国际新闻候选。",
+    "licenseNote": "RSS 页面说明个人和非营利用途免费；本项目只保存元数据和原文链接。"
+  },
+  {
+    "name": "China Daily Biz",
+    "enabled": false,
+    "homepageUrl": "https://www.chinadaily.com.cn/business/",
+    "feedUrl": "http://www.chinadaily.com.cn/rss/bizchina_rss.xml",
+    "category": "finance",
+    "crawlType": "rss",
+    "priority": 60,
+    "reliabilityNote": "China Daily 官方财经 RSS，补充经济和商业候选。",
+    "licenseNote": "RSS 页面说明个人和非营利用途免费；本项目只保存元数据和原文链接。"
+  },
+  {
+    "name": "China Daily Sports",
+    "enabled": false,
+    "homepageUrl": "https://www.chinadaily.com.cn/sports/",
+    "feedUrl": "http://www.chinadaily.com.cn/rss/sports_rss.xml",
+    "category": "sports",
+    "crawlType": "rss",
+    "priority": 45,
+    "reliabilityNote": "China Daily 官方体育 RSS，补充轻量公共话题。",
+    "licenseNote": "RSS 页面说明个人和非营利用途免费；本项目只保存元数据和原文链接。"
+  },
+  {
+    "name": "China Daily Lifestyle",
+    "enabled": false,
+    "homepageUrl": "https://www.chinadaily.com.cn/life/",
+    "feedUrl": "http://www.chinadaily.com.cn/rss/lifestyle_rss.xml",
+    "category": "society",
+    "crawlType": "rss",
+    "priority": 44,
+    "reliabilityNote": "China Daily 官方生活方式 RSS，作为社会和公共生活候选补充。",
+    "licenseNote": "RSS 页面说明个人和非营利用途免费；本项目只保存元数据和原文链接。"
+  },
+  {
+    "name": "AP News",
+    "enabled": false,
+    "homepageUrl": "https://apnews.com/",
+    "feedUrl": "https://apnews.com/index.rss",
+    "category": "international",
+    "crawlType": "rss",
+    "priority": 63,
+    "reliabilityNote": "国际综合新闻来源，作为 BBC 不可用时的备用候选池。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "TechCrunch",
+    "homepageUrl": "https://techcrunch.com/",
+    "feedUrl": "https://techcrunch.com/feed/",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 55,
+    "reliabilityNote": "科技、创业和互联网行业候选来源。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "CGTN China",
+    "homepageUrl": "https://www.cgtn.com/china",
+    "feedUrl": "https://www.cgtn.com/subscribe/rss/section/china.xml",
+    "category": "domestic",
+    "crawlType": "rss",
+    "priority": 57,
+    "reliabilityNote": "服务器实测可访问的国内公共事务候选来源。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "CGTN World",
+    "homepageUrl": "https://www.cgtn.com/world",
+    "feedUrl": "https://www.cgtn.com/subscribe/rss/section/world.xml",
+    "category": "international",
+    "crawlType": "rss",
+    "priority": 56,
+    "reliabilityNote": "服务器实测可访问的国际新闻候选来源。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "ScienceDaily Science",
+    "homepageUrl": "https://www.sciencedaily.com/news/",
+    "feedUrl": "https://www.sciencedaily.com/rss/top/science.xml",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 48,
+    "reliabilityNote": "科学研究和技术议题候选来源。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "ScienceDaily Health",
+    "homepageUrl": "https://www.sciencedaily.com/news/health_medicine/",
+    "feedUrl": "https://www.sciencedaily.com/rss/top/health.xml",
+    "category": "health",
+    "crawlType": "rss",
+    "priority": 48,
+    "reliabilityNote": "健康与医学研究候选来源。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "WHO News",
+    "homepageUrl": "https://www.who.int/news-room",
+    "feedUrl": "https://www.who.int/rss-feeds/news-english.xml",
+    "category": "health",
+    "crawlType": "rss",
+    "priority": 52,
+    "reliabilityNote": "世界卫生组织官方新闻，补充公共卫生和长期议题。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "The Guardian World",
+    "enabled": false,
+    "homepageUrl": "https://www.theguardian.com/world",
+    "feedUrl": "https://www.theguardian.com/world/rss",
+    "category": "international",
+    "crawlType": "rss",
+    "priority": 52,
+    "reliabilityNote": "国际新闻备用来源，用于增强地区和议题多样性。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "The Guardian Business",
+    "enabled": false,
+    "homepageUrl": "https://www.theguardian.com/business",
+    "feedUrl": "https://www.theguardian.com/business/rss",
+    "category": "finance",
+    "crawlType": "rss",
+    "priority": 50,
+    "reliabilityNote": "财经新闻备用来源，用于增强经济议题覆盖。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
+    "name": "The Guardian Technology",
+    "enabled": false,
+    "homepageUrl": "https://www.theguardian.com/technology",
+    "feedUrl": "https://www.theguardian.com/technology/rss",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 50,
+    "reliabilityNote": "科技新闻备用来源，用于增强科技议题覆盖。",
+    "licenseNote": "遵循来源条款，只保存元数据和原文链接。"
+  },
+  {
     "name": "BBC Sport",
+    "enabled": false,
     "homepageUrl": "https://www.bbc.com/sport",
     "feedUrl": "https://feeds.bbci.co.uk/sport/rss.xml",
     "category": "sports",

@@ -15,10 +15,15 @@ interface ApiArticle {
   id?: string;
   title?: string;
   summary?: string;
-  source?: string;
+  source?: string | ApiSource;
   category?: string;
   publishedAt?: string;
   url?: string;
+}
+
+interface ApiSource {
+  name?: string;
+  homepageUrl?: string;
 }
 
 interface ApiEditionItem {
@@ -48,10 +53,11 @@ export class DailyNewsService {
   async fetchToday(): Promise<DailyNewsResult> {
     const request = http.createHttp();
     try {
-      const response = await request.request(DAILY_NEWS_API, {
+      const response = await request.request(this.freshApiUrl(), {
         method: http.RequestMethod.GET,
         header: {
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
         },
         expectDataType: http.HttpDataType.STRING,
         connectTimeout: 15000,
@@ -66,9 +72,16 @@ export class DailyNewsService {
       }
 
       return this.normalize(data);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : `${error}`;
+      throw new Error(`网络请求失败：${message}`);
     } finally {
       request.destroy();
     }
+  }
+
+  private freshApiUrl(): string {
+    return `${DAILY_NEWS_API}&_t=${Date.now()}`;
   }
 
   private parseResponse(body: string): DailyNewsResponse {
@@ -99,7 +112,7 @@ export class DailyNewsService {
         `${article.id || `remote-${index}`}`,
         title,
         summary,
-        `${article.source || '未知来源'}`,
+        this.sourceName(article.source),
         this.categoryLabel(`${article.category || 'news'}`),
         this.formatPublishedAt(`${article.publishedAt || ''}`),
         `${article.url || ''}`,
@@ -118,6 +131,13 @@ export class DailyNewsService {
       ),
       articles
     );
+  }
+
+  private sourceName(source?: string | ApiSource): string {
+    if (typeof source === 'string') {
+      return source.length > 0 ? source : '未知来源';
+    }
+    return `${source?.name || '未知来源'}`;
   }
 
   private categoryLabel(category: string): string {

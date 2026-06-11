@@ -8,10 +8,11 @@ types.setTypeParser(1082, (value) => value);
 const PORT = Number(process.env.PORT || 3000);
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://dailyten:dailyten@127.0.0.1:5432/dailyten';
 const ADMIN_TOKEN = process.env.DAILYTEN_ADMIN_TOKEN || process.env.ADMIN_TOKEN || '';
-const AI_API_URL = process.env.AI_API_URL || 'https://api.deepseek.com/chat/completions';
-const AI_MODEL = process.env.AI_MODEL || 'deepseek-v4-flash';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
+const DEEPSEEK_MODEL = 'deepseek-v4-pro';
 const AI_API_KEY = process.env.AI_API_KEY || '';
 const DEFAULT_STATEMENT = '本期新闻由 AI 按公共重要性、来源多样性和主题配额生成初稿，并经人工审核后发布；不基于个人阅读行为排序。';
+const AI_TIMEOUT_MS = 90000;
 
 const pool = new Pool({ connectionString: DATABASE_URL, max: 6 });
 const allowedCategories = new Set(['domestic', 'international', 'finance', 'technology', 'health', 'education', 'society', 'sports', 'perspective']);
@@ -31,6 +32,20 @@ function send(res, status, body, headers = {}) {
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function jsonDate(value) {
+  if (value === null || value === undefined) return null;
+  return value?.toISOString?.() || normalizeText(value);
+}
+
+function chinaDate(now = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(now);
 }
 
 function assertString(errors, value, path, minLength = 1) {
@@ -147,6 +162,75 @@ function validateEdition(payload) {
   return errors;
 }
 
+function qualityCheckEdition(payload) {
+  const issues = [];
+  const items = Array.isArray(payload?.items) ? payload.items : [];
+  const urls = new Set();
+  const sourceCounts = new Map();
+  const categoryCounts = new Map();
+  const normalizedTitles = new Map();
+  let englishTitleCount = 0;
+
+  function add(level, path, message) {
+    issues.push({ level, path, message });
+  }
+
+  if (items.length !== 10) {
+    add('error', 'items', '必须正好 10 条新闻。');
+  }
+
+  items.forEach((item, index) => {
+    const path = `items[${index}]`;
+    const article = item?.article || {};
+    const title = normalizeText(article.title);
+    const summary = normalizeText(article.summary);
+    const url = normalizeText(article.url);
+    const sourceName = normalizeText(article.source?.name);
+    const category = normalizeText(article.category);
+
+    if (title.length > 0 && title.length < 8) add('warning', `${path}.article.title`, '标题偏短，建议人工确认信息是否完整。');
+    if (summary.length > 0 && summary.length < 50) add('warning', `${path}.article.summary`, '摘要偏短，建议补充背景或影响。');
+    if (summary.length > 220) add('warning', `${path}.article.summary`, '摘要偏长，App 展示可能显得拥挤。');
+    if (/^[\x00-\x7F\s.,:;'"!?()\-]+$/.test(title) && title.length > 0) englishTitleCount += 1;
+
+    const normalizedTitle = title.toLowerCase().replace(/[^\p{Script=Han}a-z0-9]+/gu, '');
+    if (normalizedTitle) {
+      if (normalizedTitles.has(normalizedTitle)) add('error', `${path}.article.title`, `标题与第 ${normalizedTitles.get(normalizedTitle) + 1} 条重复。`);
+      normalizedTitles.set(normalizedTitle, index);
+    }
+
+    if (url) {
+      const canonicalUrl = url.replace(/[?#].*$/, '');
+      if (urls.has(canonicalUrl)) add('error', `${path}.article.url`, '原文链接重复。');
+      urls.add(canonicalUrl);
+    }
+
+    if (sourceName) sourceCounts.set(sourceName, (sourceCounts.get(sourceName) || 0) + 1);
+    if (category) categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
+
+    const publishedAt = Date.parse(normalizeText(article.publishedAt));
+    if (!Number.isNaN(publishedAt)) {
+      const ageDays = (Date.now() - publishedAt) / (24 * 60 * 60 * 1000);
+      if (ageDays > 10) add('warning', `${path}.article.publishedAt`, '发布时间超过 10 天，建议确认是否仍适合今日版本。');
+      if (ageDays < -1) add('warning', `${path}.article.publishedAt`, '发布时间在未来，建议检查时间格式。');
+    }
+  });
+
+  for (const [source, count] of sourceCounts) {
+    if (count > 4) add('warning', 'items', `来源“${source}”占 ${count} 条，来源集中度偏高。`);
+  }
+  for (const [category, count] of categoryCounts) {
+    if (count > 4) add('warning', 'items', `分类“${category}”占 ${count} 条，主题集中度偏高。`);
+  }
+  if (sourceCounts.size < 4 && items.length === 10) add('warning', 'items', '来源少于 4 个，建议增加来源多样性。');
+  if (categoryCounts.size < 4 && items.length === 10) add('warning', 'items', '分类少于 4 个，建议增加主题多样性。');
+  if (englishTitleCount > 6) add('warning', 'items', '英文标题超过 6 条，建议改写为中文标题或调整选稿。');
+
+  const errors = issues.filter((issue) => issue.level === 'error').length;
+  const warnings = issues.filter((issue) => issue.level === 'warning').length;
+  return { ok: errors === 0, errors, warnings, issues };
+}
+
 async function getToday(url) {
   const region = url.searchParams.get('region') || 'cn';
   const language = url.searchParams.get('language') || 'zh-CN';
@@ -204,6 +288,99 @@ async function getToday(url) {
       }))
     }
   };
+}
+
+async function editionPayload(date, region = 'cn', language = 'zh-CN') {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) {
+    return { status: 422, body: { error: 'validation_failed', errors: ['date must use YYYY-MM-DD'] } };
+  }
+  const editionResult = await pool.query(
+    `select id, edition_date, region, language, status, published_at, statement
+     from daily_editions
+     where edition_date = $1 and region = $2 and language = $3
+     limit 1`,
+    [date, region, language]
+  );
+  const edition = editionResult.rows[0];
+  if (!edition) return { status: 404, body: { error: 'edition_not_found' } };
+  const itemsResult = await pool.query(
+    `select dei.position, dei.selection_reason,
+            a.id, a.title, a.summary, a.url, a.canonical_url, a.category, a.topic_key, a.published_at,
+            s.name as source_name, s.homepage_url, s.feed_url, s.crawl_url, s.crawl_type, s.reliability_note, s.license_note
+     from daily_edition_items dei
+     join articles a on a.id = dei.article_id
+     join sources s on s.id = a.source_id
+     where dei.edition_id = $1
+     order by dei.position asc`,
+    [edition.id]
+  );
+  return {
+    status: 200,
+    body: {
+      edition: {
+        date: edition.edition_date?.toISOString?.().slice(0, 10) || String(edition.edition_date),
+        region: edition.region,
+        language: edition.language,
+        status: edition.status,
+        publishedAt: jsonDate(edition.published_at),
+        statement: edition.statement
+      },
+      items: itemsResult.rows.map((row) => ({
+        position: row.position,
+        selectionReason: row.selection_reason,
+        article: {
+          id: row.id,
+          title: row.title,
+          summary: row.summary,
+          url: row.url,
+          canonicalUrl: row.canonical_url,
+          category: row.category,
+          topicKey: row.topic_key,
+          publishedAt: jsonDate(row.published_at),
+          source: {
+            name: row.source_name,
+            homepageUrl: row.homepage_url,
+            feedUrl: row.feed_url || '',
+            crawlUrl: row.crawl_url || '',
+            crawlType: row.crawl_type || 'manual',
+            reliabilityNote: row.reliability_note || '',
+            licenseNote: row.license_note || ''
+          }
+        }
+      }))
+    }
+  };
+}
+
+async function getEditionDetail(url) {
+  const region = url.searchParams.get('region') || 'cn';
+  const language = url.searchParams.get('language') || 'zh-CN';
+  const date = url.searchParams.get('date');
+  return editionPayload(date, region, language);
+}
+
+async function publishDraft(body) {
+  const date = normalizeText(body.date) || chinaDate();
+  const region = normalizeText(body.region) || 'cn';
+  const language = normalizeText(body.language) || 'zh-CN';
+  const allowWarnings = Boolean(body.allowWarnings);
+  const detail = await editionPayload(date, region, language);
+  if (detail.status !== 200) return detail;
+  const payload = detail.body;
+  if (payload.edition.status !== 'draft') {
+    return { status: 409, body: { error: 'edition_is_not_draft', edition: payload.edition } };
+  }
+  const errors = validateEdition(payload);
+  if (errors.length > 0) return { status: 422, body: { error: 'validation_failed', errors } };
+  const quality = qualityCheckEdition(payload);
+  if (!quality.ok) return { status: 422, body: { error: 'quality_failed', quality } };
+  if (quality.warnings > 0 && !allowWarnings) {
+    return { status: 409, body: { error: 'quality_warnings', quality, draft: payload } };
+  }
+  payload.edition.status = 'published';
+  payload.edition.publishedAt = null;
+  const edition = await upsertEdition(payload);
+  return { status: 200, body: { ok: true, edition, quality } };
 }
 
 async function upsertEdition(payload) {
@@ -319,34 +496,19 @@ async function setting(key, fallback = '') {
   return normalizeText(result.rows[0]?.value || fallback);
 }
 
-function normalizeAiUrl(value) {
-  let normalized = normalizeText(value || AI_API_URL).replace(/\/+$/, '');
-  if (!normalized) return 'https://api.deepseek.com/chat/completions';
-  try {
-    const url = new URL(normalized);
-    if (url.hostname === 'api.deepseek.com' && url.pathname === '/v1') normalized = url.origin;
-  } catch (_) {}
-  return normalized.endsWith('/chat/completions') ? normalized : `${normalized}/chat/completions`;
-}
-
 async function aiConfig() {
   const apiKey = await setting('ai_api_key', AI_API_KEY);
-  const apiUrl = normalizeAiUrl(await setting('ai_api_url', AI_API_URL));
-  const model = await setting('ai_model', AI_MODEL);
   return {
-    provider: apiUrl.includes('deepseek') ? 'deepseek' : 'openai-compatible',
-    apiUrl,
-    model,
+    provider: 'deepseek',
+    apiUrl: DEEPSEEK_API_URL,
+    model: DEEPSEEK_MODEL,
     hasApiKey: Boolean(apiKey),
     keyPreview: apiKey ? `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}` : null
   };
 }
 
 async function saveAiConfig(body) {
-  const entries = [
-    ['ai_api_url', normalizeAiUrl(body.apiUrl)],
-    ['ai_model', normalizeText(body.model || AI_MODEL)]
-  ];
+  const entries = [];
   if (normalizeText(body.apiKey)) entries.push(['ai_api_key', normalizeText(body.apiKey)]);
   for (const [key, value] of entries) {
     await pool.query(
@@ -360,17 +522,55 @@ async function saveAiConfig(body) {
   return aiConfig();
 }
 
-async function callAiDraft(candidatePayload) {
+async function callDeepSeek(body) {
   const apiKey = await setting('ai_api_key', AI_API_KEY);
-  const apiUrl = normalizeAiUrl(await setting('ai_api_url', AI_API_URL));
-  const model = await setting('ai_model', AI_MODEL);
   if (!apiKey) {
     const error = new Error('missing_ai_api_key');
     error.status = 503;
     throw error;
   }
-  const candidates = (candidatePayload.candidates || []).slice(0, 120).map((candidate) => ({
-    candidateId: candidate.candidateId,
+
+  const response = await fetch(DEEPSEEK_API_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: DEEPSEEK_MODEL, ...body }),
+    signal: AbortSignal.timeout(AI_TIMEOUT_MS)
+  });
+  if (!response.ok) {
+    const error = new Error(`DeepSeek ${response.status}: ${await response.text()}`);
+    error.status = 502;
+    throw error;
+  }
+  return response.json();
+}
+
+function parseAiJson(content) {
+  const text = normalizeText(content)
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```$/i, '')
+    .trim();
+  return JSON.parse(text || '{}');
+}
+
+async function testAiConnection() {
+  const data = await callDeepSeek({
+    messages: [
+      { role: 'system', content: 'Return JSON only.' },
+      { role: 'user', content: 'Return exactly {"ok":true,"message":"connected"}.' }
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0,
+    max_tokens: 128,
+    stream: false,
+    thinking: { type: 'disabled' }
+  });
+  return { config: await aiConfig(), response: data.choices?.[0]?.message?.content ?? null };
+}
+
+async function callAiDraft(candidatePayload) {
+  const candidates = (candidatePayload.candidates || []).slice(0, 120).map((candidate, index) => ({
+    candidateId: candidateKey(candidate, index),
     title: candidate.title,
     summary: candidate.summary,
     url: candidate.url,
@@ -379,49 +579,111 @@ async function callAiDraft(candidatePayload) {
     publishedAt: candidate.publishedAt,
     source: candidate.source
   }));
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      messages: [
-        {
-          role: 'system',
-          content: '你是“今日十条”的公共新闻编辑助理。只从候选新闻中选择 10 条，不使用任何用户画像，不编造新闻。输出 JSON：{"picks":[{"candidateId":1,"selectionReason":"...","summaryRewrite":"..."}],"reviewNotes":[]}'
-        },
-        { role: 'user', content: JSON.stringify({ editionDate: candidatePayload.date, rules: candidatePayload.rules, candidates }) }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.2,
-      max_tokens: 4000,
-      stream: false,
-      thinking: { type: 'disabled' }
-    })
+  const data = await callDeepSeek({
+    messages: [
+      {
+        role: 'system',
+        content: [
+          '你是“今日十条”的公共新闻编辑助理。',
+          '硬性要求：必须从候选新闻中选择正好 10 条，不多不少。',
+          '只能使用候选池里存在的 candidateId，不要自造新闻、来源、链接或发布时间。',
+          '不使用任何用户画像，不做个性化推荐。',
+          '每条 summaryRewrite 必须是中性中文摘要，60 到 180 字；英文新闻也要改写成中文摘要。',
+          '输出必须是 JSON 对象，不要 Markdown，不要解释文字。',
+          '输出格式必须为：{"picks":[{"candidateId":1,"selectionReason":"...","summaryRewrite":"..."}],"reviewNotes":[]}'
+        ].join('\n')
+      },
+      { role: 'user', content: JSON.stringify({ editionDate: candidatePayload.date, rules: candidatePayload.rules, candidates }) }
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0.2,
+    max_tokens: 4000,
+    stream: false,
+    thinking: { type: 'disabled' }
   });
-  if (!response.ok) throw new Error(`AI API ${response.status}: ${await response.text()}`);
-  const data = await response.json();
-  return JSON.parse(data.choices?.[0]?.message?.content || '{}');
+  return parseAiJson(data.choices?.[0]?.message?.content);
+}
+
+function candidateKey(candidate, index = 0) {
+  return normalizeText(candidate?.candidateId) ||
+    normalizeText(candidate?.id) ||
+    normalizeText(candidate?.url) ||
+    `${index + 1}`;
+}
+
+function normalizeCategory(value) {
+  const category = normalizeText(value).toLowerCase();
+  const labels = new Map([
+    ['国内', 'domestic'],
+    ['本地', 'domestic'],
+    ['国际', 'international'],
+    ['财经', 'finance'],
+    ['经济', 'finance'],
+    ['科技', 'technology'],
+    ['科学', 'technology'],
+    ['健康', 'health'],
+    ['教育', 'education'],
+    ['社会', 'society'],
+    ['法治', 'society'],
+    ['体育', 'sports'],
+    ['视角', 'perspective'],
+    ['观点', 'perspective']
+  ]);
+  if (allowedCategories.has(category)) return category;
+  return labels.get(normalizeText(value)) || 'society';
+}
+
+function originFromUrl(value) {
+  try {
+    return new URL(normalizeText(value)).origin;
+  } catch (_) {
+    return 'https://example.com';
+  }
+}
+
+function sourceFromCandidate(candidate) {
+  const source = candidate.source;
+  if (source && typeof source === 'object') {
+    const homepageUrl = normalizeText(source.homepageUrl) || originFromUrl(candidate.url);
+    return {
+      name: normalizeText(source.name) || normalizeText(source.homepageUrl) || '未知来源',
+      homepageUrl,
+      feedUrl: normalizeText(source.feedUrl),
+      crawlType: normalizeText(source.crawlType) || 'rss',
+      reliabilityNote: normalizeText(source.reliabilityNote),
+      licenseNote: normalizeText(source.licenseNote)
+    };
+  }
+  return {
+    name: normalizeText(source) || '未知来源',
+    homepageUrl: originFromUrl(candidate.url),
+    feedUrl: '',
+    crawlType: 'manual',
+    reliabilityNote: '',
+    licenseNote: ''
+  };
+}
+
+function normalizeSummary(candidate, pick = {}) {
+  const summary = normalizeText(pick.summaryRewrite) || normalizeText(candidate.summary);
+  if (summary.length >= 20) return summary;
+  const title = normalizeText(candidate.title);
+  return `${summary || title}。${title}，需编辑进一步复核摘要完整性。`;
 }
 
 function candidateToItem(candidate, position, pick = {}) {
+  const source = sourceFromCandidate(candidate);
   return {
     position,
     selectionReason: normalizeText(pick.selectionReason) || candidate.selectionHint || '按公共重要性、来源多样性和主题配额入选。',
     article: {
       title: normalizeText(candidate.title),
-      summary: normalizeText(pick.summaryRewrite) || normalizeText(candidate.summary),
+      summary: normalizeSummary(candidate, pick),
       url: normalizeText(candidate.url),
-      category: normalizeText(candidate.category),
+      category: normalizeCategory(candidate.category),
       topicKey: normalizeText(candidate.topicKey),
       publishedAt: normalizeText(candidate.publishedAt),
-      source: {
-        name: normalizeText(candidate.source?.name),
-        homepageUrl: normalizeText(candidate.source?.homepageUrl),
-        feedUrl: normalizeText(candidate.source?.feedUrl),
-        crawlType: normalizeText(candidate.source?.crawlType) || 'rss',
-        reliabilityNote: normalizeText(candidate.source?.reliabilityNote),
-        licenseNote: normalizeText(candidate.source?.licenseNote)
-      }
+      source
     }
   };
 }
@@ -431,19 +693,20 @@ async function aiDraft(payload) {
     return { status: 422, body: { error: 'validation_failed', errors: ['candidates must contain at least 10 articles'] } };
   }
   const result = await callAiDraft(payload);
-  const byId = new Map(payload.candidates.map((candidate) => [Number(candidate.candidateId), candidate]));
+  const byId = new Map(payload.candidates.map((candidate, index) => [candidateKey(candidate, index), { candidate, index }]));
   const used = new Set();
   const items = [];
   for (const pick of Array.isArray(result.picks) ? result.picks : []) {
-    const id = Number(pick.candidateId);
-    const candidate = byId.get(id);
-    if (!candidate || used.has(id) || items.length >= 10) continue;
+    const id = normalizeText(pick.candidateId);
+    const matched = byId.get(id);
+    if (!matched || used.has(id) || items.length >= 10) continue;
     used.add(id);
-    items.push(candidateToItem(candidate, items.length + 1, pick));
+    items.push(candidateToItem(matched.candidate, items.length + 1, pick));
   }
-  for (const candidate of payload.candidates) {
+  for (let index = 0; index < payload.candidates.length; index++) {
     if (items.length >= 10) break;
-    const id = Number(candidate.candidateId);
+    const candidate = payload.candidates[index];
+    const id = candidateKey(candidate, index);
     if (used.has(id)) continue;
     used.add(id);
     items.push(candidateToItem(candidate, items.length + 1));
@@ -474,6 +737,20 @@ async function route(req, res) {
   const adminPath = url.pathname.replace('/functions/v1/admin', '').replace('/admin', '') || '/health';
   if (req.method === 'GET' && adminPath === '/health') return send(res, 200, { ok: true });
   if (req.method === 'GET' && adminPath === '/editions') return send(res, 200, await listEditions(url));
+  if (req.method === 'GET' && adminPath === '/editions/detail') {
+    const result = await getEditionDetail(url);
+    return send(res, result.status, result.body);
+  }
+  if (req.method === 'POST' && adminPath === '/editions/quality') {
+    const payload = await readJson(req);
+    const errors = validateEdition(payload);
+    const quality = qualityCheckEdition(payload);
+    return send(res, errors.length || !quality.ok ? 422 : 200, { ok: errors.length === 0 && quality.ok, errors, quality });
+  }
+  if (req.method === 'POST' && adminPath === '/editions/publish-draft') {
+    const result = await publishDraft(await readJson(req));
+    return send(res, result.status, result.body);
+  }
   if (req.method === 'PATCH' && adminPath === '/editions/status') {
     const result = await updateEditionStatus(await readJson(req));
     return send(res, result.status, result.body);
@@ -483,11 +760,18 @@ async function route(req, res) {
     const errors = validateEdition(payload);
     if (errors.length > 0) return send(res, 422, { error: 'validation_failed', errors });
     if (url.searchParams.get('dryRun') === 'true') return send(res, 200, { ok: true, dryRun: true, items: payload.items.length });
+    if (adminPath === '/editions/publish') {
+      payload.edition.status = 'published';
+      payload.edition.publishedAt = null;
+    }
     return send(res, 200, { ok: true, edition: await upsertEdition(payload) });
   }
   if (req.method === 'GET' && adminPath === '/ai/config') return send(res, 200, { ok: true, config: await aiConfig() });
   if (req.method === 'POST' && adminPath === '/ai/config') return send(res, 200, { ok: true, config: await saveAiConfig(await readJson(req)) });
-  if (req.method === 'POST' && adminPath === '/ai/test') return send(res, 200, { ok: true, config: await aiConfig() });
+  if (req.method === 'POST' && adminPath === '/ai/test') {
+    const result = await testAiConnection();
+    return send(res, 200, { ok: true, ...result });
+  }
   if (req.method === 'POST' && adminPath === '/ai/draft') {
     const result = await aiDraft(await readJson(req));
     return send(res, result.status, result.body);

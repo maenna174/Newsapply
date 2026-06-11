@@ -8,12 +8,15 @@
 - 远程校验 10 条新闻格式
 - 发布或保存每日版本
 - 查看最近版本
+- 点击最近版本里的“编辑”，载入 draft/published 版本
+- 在“草稿可视化编辑”里修改 10 条新闻
+- 一键载入今日草稿、质量检查、发布今日草稿
 - 读取 AI API 配置、测试 AI 连接
-- 在管理后台填写并保存 AI API 地址、模型、Key
+- 在管理后台填写并保存 DeepSeek API Key
 - 导入候选池 JSON，让 AI 生成每日草稿
 
-管理后台不会接触 Supabase `service_role`。页面只使用 `DAILYTEN_ADMIN_TOKEN` 调用 Supabase Edge Function，真正的数据写入由 `supabase/functions/admin` 在服务端完成。
-DeepSeek API Key 会由 admin Function 保存到服务端配置表。网页后台读取配置时只显示“是否已配置”和脱敏尾号，不会回显完整 Key。
+管理后台不会接触数据库密码或 Supabase `service_role`。页面只使用 `DAILYTEN_ADMIN_TOKEN` 调用服务端 Admin API，真正的数据写入由服务端完成。
+DeepSeek API Key 会由 admin Function 保存到服务端配置表。网页后台读取配置时只显示“是否已配置”和脱敏尾号，不会回显完整 Key。接口地址固定为 `https://api.deepseek.com/chat/completions`，模型固定为 `deepseek-v4-pro`。
 
 ## 本地启动
 
@@ -47,14 +50,12 @@ npx supabase secrets set DAILYTEN_ADMIN_TOKEN=<生成的随机值>
 npx supabase db push
 ```
 
-这会创建 `app_settings` 表，用于后端保存 AI API 配置。
+这会创建 `app_settings` 表，用于后端保存 DeepSeek API Key。
 
 4. 如果不想在后台页面填写，也可以继续用 Supabase Secret 设置 DeepSeek：
 
 ```bash
 npx supabase secrets set AI_API_KEY=<你的 DeepSeek API Key>
-npx supabase secrets set AI_API_URL=https://api.deepseek.com/chat/completions
-npx supabase secrets set AI_MODEL=deepseek-v4-flash
 ```
 
 5. 部署函数：
@@ -73,32 +74,43 @@ ADMIN_TOKEN: 上面生成的随机值
 然后在“AI API 接入”里填写：
 
 ```text
-API 地址: https://api.deepseek.com/chat/completions
-模型: deepseek-v4-flash
 API Key: 你的 DeepSeek API Key
 ```
-
-API 地址也可以按 DeepSeek 文档填写 base URL：
-
-```text
-https://api.deepseek.com
-```
-
-后端会自动转成 `/chat/completions` 接口。
 
 点“保存 API”，再点“测试 AI”。
 
 ## 每日发布流程
 
-1. 自动任务生成 `data/daily-edition.<date>.json`
-2. 打开审核台微调 10 条新闻
-3. 打开管理后台
-4. 首次使用时，在“AI API 接入”保存 DeepSeek 配置并测试
-5. 如果使用 AI，先导入 `data/candidates.<date>.json`，点“生成草稿”
-6. 检查草稿内容，必要时手工修改每日 JSON
-7. 点“远程校验”
-8. 点“发布/保存”
-9. App、Web 会继续读取同一个 `/editions/today` API
+1. 服务器定时任务每天生成 `data/candidates.<date>.json`
+2. 自动调用 AI 生成 `data/daily-edition.<date>.ai-draft.json`
+3. 自动 dry-run 校验，并保存为数据库 `draft`
+4. 打开管理后台，在“最近版本”里点“编辑”
+5. 在“草稿可视化编辑”里微调 10 条新闻
+6. 点“质量检查”，检查标题、摘要、来源集中度、分类集中度、重复链接、发布时间等问题
+7. 点“发布今日草稿”，如果只有提醒项，可确认后发布；如果有错误项，需要先修正
+8. App、Web 会继续读取同一个 `/editions/today` API
+
+## 服务器自动草稿
+
+服务器上使用 systemd timer 自动运行：
+
+```bash
+systemctl status dailyten-ai-draft.timer
+journalctl -u dailyten-ai-draft.service -n 80 --no-pager
+```
+
+计划时间：
+
+```text
+每天 08:10，Asia/Shanghai
+```
+
+执行内容：
+
+```bash
+cd /opt/newsapply
+node scripts/daily-ai-draft.mjs --limit 50
+```
 
 ## 安全注意
 

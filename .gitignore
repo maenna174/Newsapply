@@ -9,7 +9,9 @@ build/
 dist/
 .vercel/
 *.zip
+.idea/
 data/candidates.*.json
+data/news-candidates-*.json
 data/daily-edition.20*.json
 
 # Supabase local state. Keep migrations and functions, ignore linked project cache.

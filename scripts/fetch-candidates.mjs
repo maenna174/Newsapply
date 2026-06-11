@@ -7,6 +7,7 @@ import { dirname, resolve } from 'node:path';
 const DEFAULT_SOURCE_FILE = 'data/rss-sources.json';
 const DEFAULT_MAX_AGE_DAYS = 4;
 const DEFAULT_LIMIT_PER_SOURCE = 12;
+const DEFAULT_TOTAL_LIMIT = 50;
 const DEFAULT_TIMEOUT_MS = 8000;
 const USER_AGENT = 'DailyTenNewsBot/0.1 (+https://project-ys6f3-4kgmdyl0q-bleedwolf-s-projects.vercel.app; contact: editor@example.com)';
 
@@ -19,6 +20,7 @@ Options:
   --sources <file>          RSS source config. Default: ${DEFAULT_SOURCE_FILE}
   --date <YYYY-MM-DD>       Edition date. Default: today in Asia/Shanghai
   --out <file>              Output candidate JSON. Default: data/candidates.<date>.json
+  --limit <n>               Max total candidates. Default: ${DEFAULT_TOTAL_LIMIT}. Use 0 for no limit
   --limit-per-source <n>    Max items per source. Default: ${DEFAULT_LIMIT_PER_SOURCE}
   --max-age-days <n>        Keep recent items only. Default: ${DEFAULT_MAX_AGE_DAYS}
   --timeout-ms <n>          Network timeout per source. Default: ${DEFAULT_TIMEOUT_MS}
@@ -207,6 +209,7 @@ async function main() {
   const sourceFile = resolve(process.cwd(), getArg('--sources', DEFAULT_SOURCE_FILE));
   const outFile = resolve(process.cwd(), getArg('--out', `data/candidates.${date}.json`));
   const limitPerSource = Number(getArg('--limit-per-source', DEFAULT_LIMIT_PER_SOURCE));
+  const totalLimit = Number(getArg('--limit', DEFAULT_TOTAL_LIMIT));
   const maxAgeDays = Number(getArg('--max-age-days', DEFAULT_MAX_AGE_DAYS));
   const timeoutMs = Number(getArg('--timeout-ms', DEFAULT_TIMEOUT_MS));
   const sources = JSON.parse(readFileSync(sourceFile, 'utf8')).filter((source) => source.enabled !== false);
@@ -234,6 +237,7 @@ async function main() {
       }
       return Date.parse(b.publishedAt) - Date.parse(a.publishedAt);
     })
+    .slice(0, totalLimit > 0 ? totalLimit : undefined)
     .map((item, index) => ({
       candidateId: index + 1,
       ...item

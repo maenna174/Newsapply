@@ -29,7 +29,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
       line-height: 1.55;
     }
-    button, input, textarea {
+    button, input, textarea, select {
       font: inherit;
     }
     button {
@@ -114,7 +114,7 @@
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
-    input, textarea {
+    input, textarea, select {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -126,6 +126,10 @@
       height: 40px;
       padding: 0 12px;
     }
+    select {
+      height: 40px;
+      padding: 0 12px;
+    }
     textarea {
       min-height: 360px;
       resize: vertical;
@@ -134,13 +138,9 @@
       font-size: 12px;
       line-height: 1.55;
     }
-    input:focus, textarea:focus {
+    input:focus, textarea:focus, select:focus {
       border-color: var(--green);
       box-shadow: 0 0 0 3px rgba(46, 111, 87, .12);
-    }
-    .small-textarea {
-      min-height: 170px;
-      max-height: 260px;
     }
     .buttons {
       display: flex;
@@ -148,7 +148,7 @@
       gap: 8px;
       align-items: center;
     }
-    .button, .file-button {
+    .button {
       min-height: 38px;
       border-radius: 8px;
       padding: 0 13px;
@@ -163,15 +163,9 @@
     .secondary { background: var(--green-soft); color: var(--green); }
     .blue { background: var(--blue-soft); color: var(--blue); }
     .danger { background: var(--red-soft); color: var(--red); }
-    .file-button input { display: none; }
     .metric-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-    }
-    .mini-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
     .metric {
@@ -200,6 +194,56 @@
       padding: 12px;
       background: #fff;
     }
+    .draft-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .draft-editor {
+      display: grid;
+      gap: 12px;
+    }
+    .edition-editor {
+      display: grid;
+      grid-template-columns: 160px 140px 1fr;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fafbf9;
+    }
+    .item-editor {
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+    .item-editor-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .editor-grid {
+      display: grid;
+      grid-template-columns: 72px 1fr 150px 150px;
+      gap: 10px;
+    }
+    .editor-grid .wide {
+      grid-column: span 2;
+    }
+    .editor-grid .full {
+      grid-column: 1 / -1;
+    }
+    .editor-grid textarea {
+      min-height: 92px;
+      font-family: inherit;
+      font-size: 13px;
+    }
     .meta {
       display: flex;
       flex-wrap: wrap;
@@ -218,14 +262,6 @@
     }
     .tag.draft { background: var(--amber-soft); color: var(--amber); }
     .tag.published { background: var(--green-soft); color: var(--green); }
-    .status-line {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      color: var(--muted);
-      font-size: 12px;
-    }
     .status-pill {
       border-radius: 6px;
       padding: 3px 8px;
@@ -281,8 +317,11 @@
     }
     .toast.show { opacity: 1; }
     @media (max-width: 980px) {
-      .grid, .top, .row, .metric-grid {
+      .grid, .top, .row, .metric-grid, .edition-editor, .editor-grid {
         grid-template-columns: 1fr;
+      }
+      .editor-grid .wide, .editor-grid .full {
+        grid-column: auto;
       }
     }
   </style>
@@ -297,10 +336,6 @@
           <p class="sub">发布每日版本、查看最近版本。最后一步仍需人工确认。</p>
         </div>
       </div>
-      <div class="buttons">
-        <button id="saveConfigButton" class="button secondary" type="button">保存配置</button>
-        <button id="healthButton" class="button blue" type="button">检查连接</button>
-      </div>
     </header>
 
     <section class="grid">
@@ -308,12 +343,9 @@
         <div class="panel-head">
           <h2>发布每日版本</h2>
           <div class="buttons">
-            <label class="file-button secondary">
-              导入 JSON
-              <input id="fileInput" type="file" accept="application/json,.json">
-            </label>
-            <button id="validateButton" class="button blue" type="button">远程校验</button>
-            <button id="publishButton" class="button primary" type="button">发布/保存</button>
+            <button id="loadTodayDraftButton" class="button secondary" type="button">载入今日草稿</button>
+            <button id="qualityButton" class="button blue" type="button">质量检查</button>
+            <button id="publishTodayDraftButton" class="button primary" type="button">发布今日草稿</button>
           </div>
         </div>
         <div class="section">
@@ -324,8 +356,17 @@
             <div class="metric"><strong id="statusMetric">-</strong><span>状态</span></div>
           </div>
         </div>
+        <textarea id="editionInput" hidden></textarea>
         <div class="section">
-          <textarea id="editionInput" placeholder="导入 data/daily-edition.<date>.json，或粘贴每日版本 JSON"></textarea>
+          <div class="draft-toolbar">
+            <div>
+              <h2>草稿可视化编辑</h2>
+              <p class="sub">先载入今日草稿，编辑后做质量检查，确认无误再发布。</p>
+            </div>
+          </div>
+          <div id="draftEditor" class="draft-editor">
+            <p class="empty">点击“载入今日草稿”后，可在这里直接编辑 10 条新闻。</p>
+          </div>
         </div>
       </div>
 
@@ -337,51 +378,7 @@
           <div class="section">
             <input id="adminUrlInput" placeholder="Admin Function URL">
             <input id="adminTokenInput" type="password" placeholder="ADMIN_TOKEN">
-            <p class="sub">token 只保存在当前浏览器 localStorage。不要把管理后台公开给无关人员。</p>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head">
-            <h2>AI API 接入</h2>
-            <button id="aiConfigButton" class="button secondary" type="button">读取配置</button>
-          </div>
-          <div class="section">
-            <div class="mini-grid">
-              <div class="metric"><strong id="aiProviderMetric">-</strong><span>服务</span></div>
-              <div class="metric"><strong id="aiKeyMetric">-</strong><span>Key</span></div>
-            </div>
-            <div class="status-line">
-              <span id="aiStatusPill" class="status-pill">未检测</span>
-              <span id="aiModelText">模型：-</span>
-            </div>
-            <label class="field-label">
-              API 地址
-              <input id="aiApiUrlInput" placeholder="https://api.deepseek.com">
-            </label>
-            <div class="row">
-              <label class="field-label">
-                模型
-                <input id="aiModelInput" placeholder="deepseek-v4-flash">
-              </label>
-              <label class="field-label">
-                API Key
-                <input id="aiApiKeyInput" type="password" autocomplete="off" placeholder="留空则保留后端已有 Key">
-              </label>
-            </div>
-            <div class="buttons">
-              <button id="aiSaveButton" class="button secondary" type="button">保存 API</button>
-              <label class="file-button secondary">
-                导入候选池
-                <input id="candidateFileInput" type="file" accept="application/json,.json">
-              </label>
-              <button id="aiTestButton" class="button blue" type="button">测试 AI</button>
-              <button id="aiDraftButton" class="button primary" type="button">生成草稿</button>
-            </div>
-            <label class="field-label">
-              候选池 JSON
-              <textarea id="candidateInput" class="small-textarea" placeholder="导入 data/candidates.<date>.json，AI 会从候选池生成 10 条草稿"></textarea>
-            </label>
+            <p id="configHelp" class="sub">Token 输入后会自动保存在当前浏览器，下次打开同一后台地址会自动填入。</p>
           </div>
         </section>
 
@@ -407,38 +404,37 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    const defaultAdminUrl = 'https://rrufsrfkmypxvwyggtwm.supabase.co/functions/v1/admin';
+    const defaultAdminUrl = `${window.location.origin}/functions/v1/admin`;
     const nodes = {
-      fileInput: document.getElementById('fileInput'),
-      validateButton: document.getElementById('validateButton'),
-      publishButton: document.getElementById('publishButton'),
-      saveConfigButton: document.getElementById('saveConfigButton'),
-      healthButton: document.getElementById('healthButton'),
+      loadTodayDraftButton: document.getElementById('loadTodayDraftButton'),
+      qualityButton: document.getElementById('qualityButton'),
+      publishTodayDraftButton: document.getElementById('publishTodayDraftButton'),
       listButton: document.getElementById('listButton'),
-      aiConfigButton: document.getElementById('aiConfigButton'),
-      aiSaveButton: document.getElementById('aiSaveButton'),
-      aiTestButton: document.getElementById('aiTestButton'),
-      aiDraftButton: document.getElementById('aiDraftButton'),
-      candidateFileInput: document.getElementById('candidateFileInput'),
       adminUrlInput: document.getElementById('adminUrlInput'),
       adminTokenInput: document.getElementById('adminTokenInput'),
-      aiApiUrlInput: document.getElementById('aiApiUrlInput'),
-      aiModelInput: document.getElementById('aiModelInput'),
-      aiApiKeyInput: document.getElementById('aiApiKeyInput'),
+      configHelp: document.getElementById('configHelp'),
       editionInput: document.getElementById('editionInput'),
-      candidateInput: document.getElementById('candidateInput'),
+      draftEditor: document.getElementById('draftEditor'),
       editionList: document.getElementById('editionList'),
       dateMetric: document.getElementById('dateMetric'),
       itemMetric: document.getElementById('itemMetric'),
       sourceMetric: document.getElementById('sourceMetric'),
       statusMetric: document.getElementById('statusMetric'),
-      aiProviderMetric: document.getElementById('aiProviderMetric'),
-      aiKeyMetric: document.getElementById('aiKeyMetric'),
-      aiStatusPill: document.getElementById('aiStatusPill'),
-      aiModelText: document.getElementById('aiModelText'),
       log: document.getElementById('log'),
       toast: document.getElementById('toast')
     };
+    let currentDraft = null;
+    const categoryOptions = [
+      ['domestic', '国内'],
+      ['international', '国际'],
+      ['finance', '财经'],
+      ['technology', '科技'],
+      ['health', '健康'],
+      ['education', '教育'],
+      ['society', '社会'],
+      ['sports', '体育'],
+      ['perspective', '视角']
+    ];
 
     function toast(text) {
       nodes.toast.textContent = text;
@@ -452,15 +448,38 @@
       nodes.log.textContent = `[${time}] ${message}\n${nodes.log.textContent}`;
     }
 
-    function saveConfig() {
+    function chinaDate() {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Shanghai',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date());
+    }
+
+    function persistConfig() {
       localStorage.setItem('dailyten.adminUrl', nodes.adminUrlInput.value.trim());
       localStorage.setItem('dailyten.adminToken', nodes.adminTokenInput.value.trim());
-      toast('配置已保存');
+      updateConfigHelp();
     }
 
     function loadConfig() {
-      nodes.adminUrlInput.value = localStorage.getItem('dailyten.adminUrl') || defaultAdminUrl;
+      const savedAdminUrl = localStorage.getItem('dailyten.adminUrl') || '';
+      if (savedAdminUrl.includes('supabase.co/functions/v1/admin')) {
+        localStorage.setItem('dailyten.adminUrl', defaultAdminUrl);
+        nodes.adminUrlInput.value = defaultAdminUrl;
+      } else {
+        nodes.adminUrlInput.value = savedAdminUrl || defaultAdminUrl;
+      }
       nodes.adminTokenInput.value = localStorage.getItem('dailyten.adminToken') || '';
+      updateConfigHelp();
+    }
+
+    function updateConfigHelp() {
+      const token = nodes.adminTokenInput.value.trim();
+      nodes.configHelp.textContent = token
+        ? '已在当前浏览器记住 Admin Token。更换浏览器、无痕模式、清理网站数据或换域名/IP 时需要重新填写。'
+        : 'Token 输入后会自动保存在当前浏览器，下次打开同一后台地址会自动填入。';
     }
 
     function adminUrl(path = '') {
@@ -472,6 +491,7 @@
       if (!token) {
         throw new Error('请先填写 ADMIN_TOKEN');
       }
+      persistConfig();
       const response = await fetch(adminUrl(path), {
         ...options,
         headers: {
@@ -484,7 +504,10 @@
       const text = await response.text();
       const body = text ? JSON.parse(text) : null;
       if (!response.ok) {
-        throw new Error(body?.message || body?.error || `HTTP ${response.status}`);
+        const details = Array.isArray(body?.errors) ? `：${body.errors.join('；')}` : '';
+        const error = new Error(body?.message || `${body?.error || `HTTP ${response.status}`}${details}`);
+        error.body = body;
+        throw error;
       }
       return body;
     }
@@ -497,19 +520,24 @@
       return JSON.parse(text);
     }
 
-    function parseCandidates() {
-      const text = nodes.candidateInput.value.trim();
-      if (!text) {
-        throw new Error('请先导入或粘贴候选池 JSON');
+    function setEditionPayload(payload, message = '') {
+      currentDraft = payload;
+      nodes.editionInput.value = JSON.stringify(payload, null, 2);
+      updateMetrics();
+      renderDraftEditor();
+      if (message) {
+        log(message);
       }
-      return JSON.parse(text);
     }
 
     function updateMetrics() {
       try {
         const payload = parseEdition();
         const items = Array.isArray(payload.items) ? payload.items : [];
-        const sources = new Set(items.map((item) => item.article?.source?.name).filter(Boolean));
+        const sources = new Set(items.map((item) => {
+          const source = item.article?.source;
+          return typeof source === 'string' ? source : source?.name;
+        }).filter(Boolean));
         nodes.dateMetric.textContent = payload.edition?.date || '-';
         nodes.itemMetric.textContent = String(items.length);
         nodes.sourceMetric.textContent = String(sources.size);
@@ -522,103 +550,69 @@
       }
     }
 
-    async function readFile(file) {
-      nodes.editionInput.value = await file.text();
-      updateMetrics();
-      toast('每日 JSON 已导入');
-    }
-
-    async function readCandidateFile(file) {
-      nodes.candidateInput.value = await file.text();
-      const payload = parseCandidates();
-      log(`候选池已导入: ${payload.date || '-'} / ${(payload.candidates || []).length} 条`);
-      toast('候选池已导入');
-    }
-
-    async function health() {
-      const result = await adminFetch('/health');
-      log(`连接正常: ${JSON.stringify(result)}`);
-      toast('连接正常');
-    }
-
-    function renderAiConfig(config) {
-      nodes.aiProviderMetric.textContent = config?.provider || '-';
-      nodes.aiKeyMetric.textContent = config?.hasApiKey ? '已配置' : '未配置';
-      nodes.aiStatusPill.textContent = config?.hasApiKey ? '可测试' : '缺少 Key';
-      nodes.aiStatusPill.classList.toggle('ok', Boolean(config?.hasApiKey));
-      nodes.aiModelText.textContent = `模型：${config?.model || '-'}`;
-      nodes.aiApiUrlInput.value = config?.apiUrl || 'https://api.deepseek.com';
-      nodes.aiModelInput.value = config?.model || 'deepseek-v4-flash';
-      nodes.aiApiKeyInput.value = '';
-      nodes.aiApiKeyInput.placeholder = config?.keyPreview
-        ? `已保存 ${config.keyPreview}，留空不修改`
-        : '填写 DeepSeek API Key';
-    }
-
-    async function loadAiConfig() {
-      const result = await adminFetch('/ai/config');
-      renderAiConfig(result.config);
-      log(`AI 配置: ${JSON.stringify(result.config)}`);
-      toast('AI 配置已读取');
-    }
-
-    async function saveAiConfig() {
-      const payload = {
-        apiUrl: nodes.aiApiUrlInput.value.trim(),
-        model: nodes.aiModelInput.value.trim(),
-        apiKey: nodes.aiApiKeyInput.value.trim()
-      };
-      const result = await adminFetch('/ai/config', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-      renderAiConfig(result.config);
-      log(`AI API 已保存到后端: ${JSON.stringify(result.config)}`);
-      toast('AI API 已保存');
-    }
-
-    async function testAi() {
-      const result = await adminFetch('/ai/test', { method: 'POST' });
-      renderAiConfig(result.config);
-      log(`AI 测试通过: ${JSON.stringify(result.response || result)}`);
-      toast('AI 连接正常');
-    }
-
-    async function generateAiDraft() {
-      const payload = parseCandidates();
-      const result = await adminFetch('/ai/draft', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-      nodes.editionInput.value = JSON.stringify(result.draft, null, 2);
-      updateMetrics();
-      log(`AI 草稿已生成: ${(result.aiReviewNotes || []).join(' | ') || '无额外备注'}`);
-      toast('AI 草稿已填入发布框');
-    }
-
-    async function validateRemote() {
-      const payload = parseEdition();
-      const result = await adminFetch('/editions/publish?dryRun=true', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-      log(`远程校验通过: ${JSON.stringify(result)}`);
-      toast('远程校验通过');
-    }
-
-    async function publishEdition() {
-      const payload = parseEdition();
-      const confirmed = window.confirm(`确认写入 ${payload.edition?.date || ''} 的每日版本？状态：${payload.edition?.status || 'published'}`);
-      if (!confirmed) {
-        return;
+    function formatQuality(quality) {
+      const issues = quality?.issues || [];
+      if (issues.length === 0) {
+        return '质量检查通过，未发现明显问题。';
       }
-      const result = await adminFetch('/editions/publish', {
+      return issues.map((issue) => `${issue.level === 'error' ? '错误' : '提醒'}：${issue.message}`).join(' | ');
+    }
+
+    async function qualityCheckCurrent() {
+      const payload = parseEdition();
+      const result = await adminFetch('/editions/quality', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
-      log(`发布完成: ${JSON.stringify(result)}`);
-      toast('发布完成');
+      log(`质量检查: ${formatQuality(result.quality)}`);
+      toast(result.quality?.warnings ? `有 ${result.quality.warnings} 个提醒` : '质量检查通过');
+      return result.quality;
+    }
+
+    async function loadTodayDraft() {
+      const date = chinaDate();
+      try {
+        await loadEditionDetail(date, 'cn', 'zh-CN');
+        log(`今日草稿已载入: ${date}`);
+      } catch (error) {
+        if (error.body?.error === 'edition_not_found') {
+          log(`${date} 今日草稿还没生成。自动任务每天 00:10 生成；如果刚过零点打开后台，可以先等自动任务，或手动运行生稿任务。`);
+          toast('今日草稿还没生成');
+          await listEditions().catch(() => {});
+          return;
+        }
+        throw error;
+      }
+    }
+
+    async function publishTodayDraft(allowWarnings = false) {
+      const date = chinaDate();
+      let result;
+      try {
+        result = await adminFetch('/editions/publish-draft', {
+          method: 'POST',
+          body: JSON.stringify({ date, region: 'cn', language: 'zh-CN', allowWarnings })
+        });
+      } catch (error) {
+        if (error.body?.error === 'quality_warnings') {
+          const text = formatQuality(error.body.quality);
+          log(`发布今日草稿前有质量提醒: ${text}`);
+          const confirmed = window.confirm(`发布前有质量提醒：\n\n${text}\n\n仍然发布 ${date} 今日草稿吗？`);
+          if (confirmed) {
+            return publishTodayDraft(true);
+          }
+          toast('已取消发布');
+          return;
+        }
+        if (error.body?.quality) {
+          log(`发布今日草稿被质量检查拦截: ${formatQuality(error.body.quality)}`);
+        }
+        throw error;
+      }
+      log(`今日草稿已发布: ${JSON.stringify(result.edition)}；${formatQuality(result.quality)}`);
+      toast('今日草稿已发布');
       await listEditions();
+      await loadEditionDetail(date, 'cn', 'zh-CN').catch(() => {});
     }
 
     async function listEditions() {
@@ -636,9 +630,134 @@
           </div>
           <h3>${escapeHtml(edition.edition_date)}</h3>
           <p class="sub">${escapeHtml(edition.statement || '')}</p>
+          <div class="buttons">
+            <button class="button secondary load-edition-button" type="button" data-date="${escapeHtml(edition.edition_date)}" data-region="${escapeHtml(edition.region)}" data-language="${escapeHtml(edition.language)}">编辑</button>
+          </div>
         </article>
       `).join('');
       log(`已加载最近版本 ${editions.length} 个`);
+    }
+
+    async function loadEditionDetail(date, region = 'cn', language = 'zh-CN') {
+      const query = new URLSearchParams({ date, region, language });
+      const result = await adminFetch(`/editions/detail?${query.toString()}`);
+      setEditionPayload(result, `已载入 ${date} 草稿/版本`);
+      toast('版本已载入编辑器');
+    }
+
+    function renderDraftEditor() {
+      let payload;
+      try {
+        payload = parseEdition();
+      } catch (_) {
+        currentDraft = null;
+        nodes.draftEditor.innerHTML = '<p class="empty">点击“载入今日草稿”后，可在这里直接编辑 10 条新闻。</p>';
+        return;
+      }
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      currentDraft = payload;
+      if (items.length === 0) {
+        nodes.draftEditor.innerHTML = '<p class="empty">当前 JSON 没有 items，无法渲染编辑器。</p>';
+        return;
+      }
+      const edition = payload.edition || {};
+      nodes.draftEditor.innerHTML = `
+        <div class="edition-editor">
+          <label class="field-label">日期
+            <input data-scope="edition" data-field="date" value="${escapeHtml(edition.date || '')}">
+          </label>
+          <label class="field-label">状态
+            <select data-scope="edition" data-field="status">
+              ${['draft', 'published'].map((status) => `<option value="${status}" ${edition.status === status ? 'selected' : ''}>${status}</option>`).join('')}
+            </select>
+          </label>
+          <label class="field-label">声明
+            <input data-scope="edition" data-field="statement" value="${escapeHtml(edition.statement || '')}">
+          </label>
+        </div>
+        ${items.map((item, index) => renderDraftItem(item, index)).join('')}
+      `;
+    }
+
+    function renderDraftItem(item, index) {
+      const article = item.article || {};
+      const source = typeof article.source === 'object' && article.source ? article.source : { name: article.source || '', homepageUrl: '' };
+      const category = article.category || 'society';
+      return `
+        <article class="item-editor">
+          <div class="item-editor-head">
+            <h3>#${index + 1} ${escapeHtml(article.title || '未命名新闻')}</h3>
+            <span class="tag">${escapeHtml(category)}</span>
+          </div>
+          <div class="editor-grid">
+            <label class="field-label">序号
+              <input data-scope="item" data-index="${index}" data-field="position" type="number" min="1" max="10" value="${escapeHtml(item.position || index + 1)}">
+            </label>
+            <label class="field-label wide">标题
+              <input data-scope="article" data-index="${index}" data-field="title" value="${escapeHtml(article.title || '')}">
+            </label>
+            <label class="field-label">分类
+              <select data-scope="article" data-index="${index}" data-field="category">
+                ${categoryOptions.map(([value, label]) => `<option value="${value}" ${category === value ? 'selected' : ''}>${label}</option>`).join('')}
+              </select>
+            </label>
+            <label class="field-label">来源
+              <input data-scope="source" data-index="${index}" data-field="name" value="${escapeHtml(source.name || '')}">
+            </label>
+            <label class="field-label wide">原文链接
+              <input data-scope="article" data-index="${index}" data-field="url" value="${escapeHtml(article.url || '')}">
+            </label>
+            <label class="field-label">来源主页
+              <input data-scope="source" data-index="${index}" data-field="homepageUrl" value="${escapeHtml(source.homepageUrl || '')}">
+            </label>
+            <label class="field-label">发布时间
+              <input data-scope="article" data-index="${index}" data-field="publishedAt" value="${escapeHtml(article.publishedAt || '')}">
+            </label>
+            <label class="field-label full">摘要
+              <textarea data-scope="article" data-index="${index}" data-field="summary">${escapeHtml(article.summary || '')}</textarea>
+            </label>
+            <label class="field-label full">入选理由
+              <textarea data-scope="item" data-index="${index}" data-field="selectionReason">${escapeHtml(item.selectionReason || '')}</textarea>
+            </label>
+          </div>
+        </article>
+      `;
+    }
+
+    function syncDraftFromEditor(event) {
+      const target = event.target;
+      if (!target?.dataset?.scope || !currentDraft) {
+        return;
+      }
+      const scope = target.dataset.scope;
+      const field = target.dataset.field;
+      const value = field === 'position' ? Number(target.value) : target.value;
+      if (scope === 'edition') {
+        currentDraft.edition = currentDraft.edition || {};
+        currentDraft.edition[field] = value;
+      } else {
+        const index = Number(target.dataset.index);
+        const item = currentDraft.items?.[index];
+        if (!item) {
+          return;
+        }
+        if (scope === 'item') {
+          item[field] = value;
+        }
+        if (scope === 'article') {
+          item.article = item.article || {};
+          item.article[field] = value;
+        }
+        if (scope === 'source') {
+          item.article = item.article || {};
+          if (!item.article.source || typeof item.article.source !== 'object') {
+            item.article.source = { name: String(item.article.source || ''), homepageUrl: '' };
+          }
+          item.article.source[field] = value;
+        }
+      }
+      nodes.editionInput.value = JSON.stringify(currentDraft, null, 2);
+      updateMetrics();
     }
 
     function escapeHtml(value) {
@@ -650,59 +769,41 @@
         .replaceAll("'", '&#39;');
     }
 
-    nodes.fileInput.addEventListener('change', (event) => {
-      const file = event.target.files[0];
-      if (file) readFile(file);
-      event.target.value = '';
-    });
-    nodes.candidateFileInput.addEventListener('change', (event) => {
-      const file = event.target.files[0];
-      if (file) {
-        readCandidateFile(file).catch((error) => {
-          log(`候选池导入失败: ${error.message}`);
-          toast('候选池导入失败');
-        });
-      }
-      event.target.value = '';
-    });
     nodes.editionInput.addEventListener('input', updateMetrics);
-    nodes.saveConfigButton.addEventListener('click', saveConfig);
-    nodes.healthButton.addEventListener('click', () => health().catch((error) => {
-      log(`连接失败: ${error.message}`);
-      toast('连接失败');
+    nodes.adminUrlInput.addEventListener('input', persistConfig);
+    nodes.adminTokenInput.addEventListener('input', persistConfig);
+    nodes.draftEditor.addEventListener('input', syncDraftFromEditor);
+    nodes.editionList.addEventListener('click', (event) => {
+      const button = event.target.closest('.load-edition-button');
+      if (!button) {
+        return;
+      }
+      loadEditionDetail(button.dataset.date, button.dataset.region, button.dataset.language).catch((error) => {
+        log(`载入版本失败: ${error.message}`);
+        toast('载入版本失败');
+      });
+    });
+    nodes.loadTodayDraftButton.addEventListener('click', () => loadTodayDraft().catch((error) => {
+      log(`载入今日草稿失败: ${error.message}`);
+      toast('载入今日草稿失败');
     }));
-    nodes.validateButton.addEventListener('click', () => validateRemote().catch((error) => {
-      log(`校验失败: ${error.message}`);
-      toast('校验失败');
+    nodes.qualityButton.addEventListener('click', () => qualityCheckCurrent().catch((error) => {
+      const quality = error.body?.quality;
+      log(`质量检查未通过: ${quality ? formatQuality(quality) : error.message}`);
+      toast('质量检查未通过');
     }));
-    nodes.publishButton.addEventListener('click', () => publishEdition().catch((error) => {
-      log(`发布失败: ${error.message}`);
-      toast('发布失败');
+    nodes.publishTodayDraftButton.addEventListener('click', () => publishTodayDraft().catch((error) => {
+      log(`发布今日草稿失败: ${error.message}`);
+      toast('发布今日草稿失败');
     }));
     nodes.listButton.addEventListener('click', () => listEditions().catch((error) => {
       log(`加载失败: ${error.message}`);
       toast('加载失败');
     }));
-    nodes.aiConfigButton.addEventListener('click', () => loadAiConfig().catch((error) => {
-      log(`AI 配置读取失败: ${error.message}`);
-      toast('AI 配置读取失败');
-    }));
-    nodes.aiSaveButton.addEventListener('click', () => saveAiConfig().catch((error) => {
-      log(`AI API 保存失败: ${error.message}`);
-      toast('AI API 保存失败');
-    }));
-    nodes.aiTestButton.addEventListener('click', () => testAi().catch((error) => {
-      log(`AI 测试失败: ${error.message}`);
-      toast('AI 测试失败');
-    }));
-    nodes.aiDraftButton.addEventListener('click', () => generateAiDraft().catch((error) => {
-      log(`AI 草稿生成失败: ${error.message}`);
-      toast('AI 草稿生成失败');
-    }));
 
     loadConfig();
     updateMetrics();
-    loadAiConfig().catch(() => {});
+    listEditions().catch(() => {});
   </script>
 </body>
 </html>

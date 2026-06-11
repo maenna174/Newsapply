@@ -93,8 +93,8 @@ const adminToken = Deno.env.get('DAILYTEN_ADMIN_TOKEN') ??
   Deno.env.get('ADMIN_TOKEN') ??
   '';
 const envAiApiKey = Deno.env.get('AI_API_KEY') ?? '';
-const envAiApiUrl = Deno.env.get('AI_API_URL') ?? 'https://api.deepseek.com/chat/completions';
-const envAiModel = Deno.env.get('AI_MODEL') ?? 'deepseek-v4-flash';
+const deepseekApiUrl = 'https://api.deepseek.com/chat/completions';
+const deepseekModel = 'deepseek-v4-pro';
 const defaultAiStatement = '本期新闻由 AI 按公共重要性、来源多样性和主题配额生成初稿，并经人工审核后发布；不基于个人阅读行为排序。';
 
 const allowedCategories = new Set([
@@ -275,43 +275,20 @@ function maskSecret(value: string): string | null {
     : `${normalized.slice(0, 4)}...${normalized.slice(-4)}`;
 }
 
-function normalizeAiApiUrl(value: string): string {
-  let normalized = normalizeText(value || envAiApiUrl).replace(/\/+$/, '');
-  if (!normalized) {
-    return 'https://api.deepseek.com/chat/completions';
-  }
-  try {
-    const url = new URL(normalized);
-    if (url.hostname === 'api.deepseek.com' && url.pathname === '/v1') {
-      normalized = `${url.origin}`;
-    }
-  } catch (_) {
-    return normalized;
-  }
-  if (normalized.endsWith('/chat/completions')) {
-    return normalized;
-  }
-  return `${normalized}/chat/completions`;
-}
-
 async function getAiRuntimeConfig(): Promise<AiRuntimeConfig> {
   try {
     const rows = await postgrest<AppSettingRow[]>(
-      'app_settings?setting_key=in.(ai_api_key,ai_api_url,ai_model)&select=setting_key,value,updated_at'
+      'app_settings?setting_key=eq.ai_api_key&select=setting_key,value,updated_at'
     );
     const byKey = new Map(rows.map((row) => [row.setting_key, row]));
     const dbApiKey = settingValue(byKey.get('ai_api_key'));
-    const dbApiUrl = settingValue(byKey.get('ai_api_url'));
-    const dbModel = settingValue(byKey.get('ai_model'));
     const keyRow = byKey.get('ai_api_key');
-    const source = dbApiKey || dbApiUrl || dbModel
-      ? 'database'
-      : (envAiApiKey || envAiApiUrl || envAiModel ? 'env' : 'default');
+    const source = dbApiKey ? 'database' : (envAiApiKey ? 'env' : 'default');
     const apiKey = dbApiKey || envAiApiKey;
     return {
       apiKey,
-      apiUrl: normalizeAiApiUrl(dbApiUrl || envAiApiUrl),
-      model: dbModel || envAiModel,
+      apiUrl: deepseekApiUrl,
+      model: deepseekModel,
       source,
       keyPreview: maskSecret(apiKey),
       updatedAt: keyRow?.updated_at ?? null,
@@ -321,8 +298,8 @@ async function getAiRuntimeConfig(): Promise<AiRuntimeConfig> {
     const apiKey = envAiApiKey;
     return {
       apiKey,
-      apiUrl: normalizeAiApiUrl(envAiApiUrl),
-      model: envAiModel,
+      apiUrl: deepseekApiUrl,
+      model: deepseekModel,
       source: apiKey ? 'env' : 'default',
       keyPreview: maskSecret(apiKey),
       updatedAt: null,
@@ -333,7 +310,7 @@ async function getAiRuntimeConfig(): Promise<AiRuntimeConfig> {
 
 function aiConfigResponse(config: AiRuntimeConfig): JsonRecord {
   return {
-    provider: config.apiUrl.includes('deepseek') ? 'deepseek' : 'openai-compatible',
+    provider: 'deepseek',
     apiUrl: config.apiUrl,
     model: config.model,
     hasApiKey: Boolean(config.apiKey),
@@ -365,18 +342,10 @@ async function upsertSetting(settingKey: string, value: string, isSecret = false
 
 async function saveAiConfig(request: Request): Promise<Response> {
   const body = await request.json() as JsonRecord;
-  const apiUrl = normalizeText(body.apiUrl);
-  const model = normalizeText(body.model);
   const apiKey = normalizeText(body.apiKey);
   const clearApiKey = body.clearApiKey === true;
   const errors: string[] = [];
 
-  if (apiUrl) {
-    assertUrl(errors, normalizeAiApiUrl(apiUrl), 'apiUrl');
-  }
-  if (model && model.length < 2) {
-    errors.push('model must be at least 2 characters');
-  }
   if (apiKey && apiKey.length < 12) {
     errors.push('apiKey is too short');
   }
@@ -385,12 +354,6 @@ async function saveAiConfig(request: Request): Promise<Response> {
   }
 
   try {
-    if (apiUrl) {
-      await upsertSetting('ai_api_url', normalizeAiApiUrl(apiUrl));
-    }
-    if (model) {
-      await upsertSetting('ai_model', model);
-    }
     if (apiKey || clearApiKey) {
       await upsertSetting('ai_api_key', clearApiKey ? '' : apiKey, true);
     }
@@ -430,10 +393,12 @@ function aiSystemPrompt(): string {
 
 目标：从候选新闻中生成 10 条每日公共新闻草稿。
 
-硬性原则：
-- 不使用任何用户画像、兴趣、点击、停留、收藏、搜索历史。
-- 不做个性化推荐，只做公共编辑筛选。
-- 只从候选新闻中选择，不编造新闻，不改写 URL，不新增来源。
+	硬性原则：
+	- 必须从候选新闻中选择正好 10 条，不多不少。
+	- 只能使用候选池中存在的 candidateId，不要自造新闻、来源、链接或发布时间。
+	- 不使用任何用户画像、兴趣、点击、停留、收藏、搜索历史。
+	- 不做个性化推荐，只做公共编辑筛选。
+	- 只从候选新闻中选择，不编造新闻，不改写 URL，不新增来源。
 - 同一来源最多 3 条，同一主题最多 2 条。
 - 尽量覆盖国内/国际/财经/科技/健康/教育/社会/体育/长期议题。
 - 避免标题党、八卦化、重复事件、摘要过短或来源不清的条目。
@@ -615,26 +580,83 @@ function candidateToEditionItem(
   position: number,
   pick: AiPick
 ): NonNullable<EditionPayload['items']>[number] {
+  const source = sourceFromCandidate(candidate);
   return {
     position,
     selectionReason: normalizeText(pick.selectionReason) || '按公共重要性、来源多样性和主题配额入选。',
     article: {
       title: normalizeText(candidate.title),
-      summary: normalizeText(pick.summaryRewrite) || normalizeText(candidate.summary),
+      summary: normalizeSummary(candidate, pick),
       url: normalizeText(candidate.url),
-      category: normalizeText(candidate.category),
+      category: normalizeCategory(candidate.category),
       topicKey: normalizeText(candidate.topicKey),
       publishedAt: normalizeText(candidate.publishedAt),
-      source: {
-        name: normalizeText(candidate.source?.name),
-        homepageUrl: normalizeText(candidate.source?.homepageUrl),
-        feedUrl: normalizeText(candidate.source?.feedUrl),
-        crawlType: normalizeText(candidate.source?.crawlType) || 'rss',
-        reliabilityNote: normalizeText(candidate.source?.reliabilityNote),
-        licenseNote: normalizeText(candidate.source?.licenseNote)
-      }
+      source
     }
   };
+}
+
+function normalizeCategory(value: unknown): string {
+  const raw = normalizeText(value);
+  const lower = raw.toLowerCase();
+  const labels: Record<string, string> = {
+    '国内': 'domestic',
+    '本地': 'domestic',
+    '国际': 'international',
+    '财经': 'finance',
+    '经济': 'finance',
+    '科技': 'technology',
+    '科学': 'technology',
+    '健康': 'health',
+    '教育': 'education',
+    '社会': 'society',
+    '法治': 'society',
+    '体育': 'sports',
+    '视角': 'perspective',
+    '观点': 'perspective'
+  };
+  return allowedCategories.has(lower) ? lower : (labels[raw] ?? 'society');
+}
+
+function originFromUrl(value: unknown): string {
+  try {
+    return new URL(normalizeText(value)).origin;
+  } catch (_) {
+    return 'https://example.com';
+  }
+}
+
+function sourceFromCandidate(candidate: NonNullable<CandidatePayload['candidates']>[number]): NonNullable<NonNullable<NonNullable<EditionPayload['items']>[number]['article']>['source']> {
+  const source = candidate.source;
+  if (source && typeof source === 'object') {
+    return {
+      name: normalizeText(source.name) || normalizeText(source.homepageUrl) || '未知来源',
+      homepageUrl: normalizeText(source.homepageUrl) || originFromUrl(candidate.url),
+      feedUrl: normalizeText(source.feedUrl),
+      crawlUrl: null,
+      crawlType: normalizeText(source.crawlType) || 'rss',
+      reliabilityNote: normalizeText(source.reliabilityNote),
+      licenseNote: normalizeText(source.licenseNote)
+    };
+  }
+  return {
+    name: normalizeText(source) || '未知来源',
+    homepageUrl: originFromUrl(candidate.url),
+    feedUrl: '',
+    crawlUrl: null,
+    crawlType: 'manual',
+    reliabilityNote: '',
+    licenseNote: ''
+  };
+}
+
+function normalizeSummary(candidate: NonNullable<CandidatePayload['candidates']>[number], pick: AiPick): string {
+  const summary = normalizeText(pick.summaryRewrite) || normalizeText(candidate.summary);
+  if (summary.length >= 20) {
+    return summary;
+  }
+  const title = normalizeText(candidate.title);
+  return `${summary || title}。${title}，需编辑进一步复核摘要完整性。`;
 }
 
 async function postgrest<T>(path: string, options: RequestInit = {}, prefer?: string): Promise<T> {
