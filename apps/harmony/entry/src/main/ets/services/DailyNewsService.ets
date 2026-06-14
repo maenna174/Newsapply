@@ -2,6 +2,7 @@ import { http } from '@kit.NetworkKit';
 import { EditionMeta, NewsArticle } from '../model/NewsModels';
 
 const DAILY_NEWS_API: string = 'http://121.37.178.24/functions/v1/editions/today?region=cn&language=zh-CN';
+const AI_NEWS_API: string = 'http://121.37.178.24/functions/v1/editions/ai/today?language=zh-CN';
 
 interface ApiEdition {
   date?: string;
@@ -51,9 +52,17 @@ export class DailyNewsResult {
 
 export class DailyNewsService {
   async fetchToday(): Promise<DailyNewsResult> {
+    return this.fetchEdition(DAILY_NEWS_API);
+  }
+
+  async fetchAi(): Promise<DailyNewsResult> {
+    return this.fetchEdition(AI_NEWS_API);
+  }
+
+  private async fetchEdition(apiUrl: string): Promise<DailyNewsResult> {
     const request = http.createHttp();
     try {
-      const response = await request.request(this.freshApiUrl(), {
+      const response = await request.request(this.freshApiUrl(apiUrl), {
         method: http.RequestMethod.GET,
         header: {
           'Accept': 'application/json',
@@ -80,8 +89,8 @@ export class DailyNewsService {
     }
   }
 
-  private freshApiUrl(): string {
-    return `${DAILY_NEWS_API}&_t=${Date.now()}`;
+  private freshApiUrl(apiUrl: string): string {
+    return `${apiUrl}&_t=${Date.now()}`;
   }
 
   private parseResponse(body: string): DailyNewsResponse {

@@ -1,0 +1,124 @@
+[
+  {
+    "name": "TechCrunch AI",
+    "homepageUrl": "https://techcrunch.com/category/artificial-intelligence/",
+    "feedUrl": "https://techcrunch.com/category/artificial-intelligence/feed/",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 86,
+    "reliabilityNote": "AI、创业公司、模型产品和平台公司动态候选来源。",
+    "licenseNote": "只保存标题、摘要、链接和发布时间；商业化前确认授权。",
+    "keywordPreset": "ai"
+  },
+  {
+    "name": "VentureBeat AI",
+    "homepageUrl": "https://venturebeat.com/category/ai/",
+    "feedUrl": "https://venturebeat.com/category/ai/feed/",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 84,
+    "reliabilityNote": "企业 AI、模型落地和产业应用候选来源。",
+    "licenseNote": "只保存标题、摘要、链接和发布时间；商业化前确认授权。",
+    "keywordPreset": "ai"
+  },
+  {
+    "name": "The Decoder",
+    "homepageUrl": "https://the-decoder.com/",
+    "feedUrl": "https://the-decoder.com/feed/",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 82,
+    "reliabilityNote": "生成式 AI、模型产品和研究动态候选来源。",
+    "licenseNote": "只保存标题、摘要、链接和发布时间；商业化前确认授权。",
+    "keywordPreset": "ai"
+  },
+  {
+    "name": "Ars Technica AI",
+    "homepageUrl": "https://arstechnica.com/ai/",
+    "feedUrl": "https://arstechnica.com/ai/feed/",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 78,
+    "reliabilityNote": "AI 技术、安全、平台和行业影响候选来源。",
+    "licenseNote": "只保存标题、摘要、链接和发布时间；商业化前确认授权。",
+    "keywordPreset": "ai"
+  },
+  {
+    "name": "ScienceDaily AI",
+    "homepageUrl": "https://www.sciencedaily.com/news/computers_math/artificial_intelligence/",
+    "feedUrl": "https://www.sciencedaily.com/rss/computers_math/artificial_intelligence.xml",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 74,
+    "reliabilityNote": "人工智能研究和学术进展候选来源。",
+    "licenseNote": "只保存标题、摘要、链接和发布时间；商业化前确认授权。",
+    "keywordPreset": "ai"
+  },
+  {
+    "name": "NVIDIA AI Blog",
+    "homepageUrl": "https://blogs.nvidia.com/blog/category/deep-learning/",
+    "feedUrl": "https://blogs.nvidia.com/blog/category/deep-learning/feed/",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 70,
+    "reliabilityNote": "AI 硬件、推理、训练和行业应用候选来源。",
+    "licenseNote": "企业官方博客，需注意来源立场；只保存元数据和原文链接。",
+    "keywordPreset": "ai"
+  },
+  {
+    "name": "MIT News AI",
+    "homepageUrl": "https://news.mit.edu/topic/artificial-intelligence2",
+    "feedUrl": "https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 68,
+    "reliabilityNote": "高校人工智能研究候选来源。",
+    "licenseNote": "只保存标题、摘要、链接和发布时间；商业化前确认授权。",
+    "keywordPreset": "ai"
+  },
+  {
+    "name": "Google AI Blog",
+    "homepageUrl": "https://blog.google/technology/ai/",
+    "feedUrl": "https://blog.google/technology/ai/rss/",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 66,
+    "reliabilityNote": "Google AI 产品、研究和平台动态候选来源。",
+    "licenseNote": "企业官方博客，需注意来源立场；只保存元数据和原文链接。",
+    "keywordPreset": "ai"
+  },
+  {
+    "name": "Microsoft AI Blog",
+    "homepageUrl": "https://blogs.microsoft.com/ai/",
+    "feedUrl": "https://blogs.microsoft.com/ai/feed/",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 64,
+    "reliabilityNote": "Microsoft AI 产品、企业应用和治理动态候选来源。",
+    "licenseNote": "企业官方博客，需注意来源立场；只保存元数据和原文链接。",
+    "keywordPreset": "ai",
+    "enabled": false
+  },
+  {
+    "name": "TechCrunch",
+    "homepageUrl": "https://techcrunch.com/",
+    "feedUrl": "https://techcrunch.com/feed/",
+    "category": "technology",
+    "crawlType": "rss",
+    "priority": 54,
+    "includeKeywords": [
+      "ai",
+      "artificial intelligence",
+      "openai",
+      "deepseek",
+      "llm",
+      "large language model",
+      "agent",
+      "generative",
+      "machine learning"
+    ],
+    "reliabilityNote": "综合科技 RSS，按 AI 关键词过滤后作为补充候选来源。",
+    "licenseNote": "只保存标题、摘要、链接和发布时间；商业化前确认授权。",
+    "keywordPreset": "ai"
+  }
+]

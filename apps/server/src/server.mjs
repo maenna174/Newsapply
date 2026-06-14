@@ -98,6 +98,8 @@ function validateEdition(payload) {
   const errors = [];
   const edition = payload?.edition;
   const items = payload?.items;
+  const language = normalizeText(edition?.language);
+  const requiresChineseTitle = language.toLowerCase().startsWith('zh');
   if (!edition || typeof edition !== 'object') {
     errors.push('edition must be an object');
   } else {
@@ -140,6 +142,10 @@ function validateEdition(payload) {
       return;
     }
     assertString(errors, article.title, `${path}.article.title`, 6);
+    const title = normalizeText(article.title);
+    if (requiresChineseTitle && /^[\x00-\x7F\s.,:;'"!?()\-]+$/.test(title) && title.length > 0) {
+      errors.push(`${path}.article.title must be rewritten in Chinese`);
+    }
     assertString(errors, article.summary, `${path}.article.summary`, 20);
     assertUrl(errors, article.url, `${path}.article.url`);
     assertDateTime(errors, article.publishedAt, `${path}.article.publishedAt`);
@@ -231,9 +237,9 @@ function qualityCheckEdition(payload) {
   return { ok: errors === 0, errors, warnings, issues };
 }
 
-async function getToday(url) {
-  const region = url.searchParams.get('region') || 'cn';
-  const language = url.searchParams.get('language') || 'zh-CN';
+async function getToday(url, defaults = {}) {
+  const region = url.searchParams.get('region') || defaults.region || 'cn';
+  const language = url.searchParams.get('language') || defaults.language || 'zh-CN';
   const date = url.searchParams.get('date');
   const params = [region, language];
   let where = 'region = $1 and language = $2 and status = $3';
@@ -588,9 +594,10 @@ async function callAiDraft(candidatePayload) {
           '硬性要求：必须从候选新闻中选择正好 10 条，不多不少。',
           '只能使用候选池里存在的 candidateId，不要自造新闻、来源、链接或发布时间。',
           '不使用任何用户画像，不做个性化推荐。',
+          '每条 titleRewrite 必须是中文新闻标题，保留 OpenAI、Gemini、GPU 等必要专有名词，但不能整句英文照抄。',
           '每条 summaryRewrite 必须是中性中文摘要，60 到 180 字；英文新闻也要改写成中文摘要。',
           '输出必须是 JSON 对象，不要 Markdown，不要解释文字。',
-          '输出格式必须为：{"picks":[{"candidateId":1,"selectionReason":"...","summaryRewrite":"..."}],"reviewNotes":[]}'
+          '输出格式必须为：{"picks":[{"candidateId":1,"titleRewrite":"...","selectionReason":"...","summaryRewrite":"..."}],"reviewNotes":[]}'
         ].join('\n')
       },
       { role: 'user', content: JSON.stringify({ editionDate: candidatePayload.date, rules: candidatePayload.rules, candidates }) }
@@ -677,7 +684,7 @@ function candidateToItem(candidate, position, pick = {}) {
     position,
     selectionReason: normalizeText(pick.selectionReason) || candidate.selectionHint || '按公共重要性、来源多样性和主题配额入选。',
     article: {
-      title: normalizeText(candidate.title),
+      title: normalizeText(pick.titleRewrite) || normalizeText(candidate.title),
       summary: normalizeSummary(candidate, pick),
       url: normalizeText(candidate.url),
       category: normalizeCategory(candidate.category),
@@ -712,7 +719,14 @@ async function aiDraft(payload) {
     items.push(candidateToItem(candidate, items.length + 1));
   }
   const draft = {
-    edition: { date: payload.date, region: 'cn', language: 'zh-CN', status: 'draft', publishedAt: null, statement: DEFAULT_STATEMENT },
+    edition: {
+      date: payload.date,
+      region: normalizeText(payload.region) || 'cn',
+      language: normalizeText(payload.language) || 'zh-CN',
+      status: 'draft',
+      publishedAt: null,
+      statement: normalizeText(payload.statement) || DEFAULT_STATEMENT
+    },
     items,
     aiReviewNotes: Array.isArray(result.reviewNotes) ? result.reviewNotes : [],
     generatedBy: { type: 'ai-editor-assistant', generatedAt: new Date().toISOString(), personalized: false }
@@ -728,6 +742,10 @@ async function route(req, res) {
   if (req.method === 'GET' && url.pathname === '/health') return send(res, 200, { ok: true });
   if (req.method === 'GET' && (url.pathname === '/functions/v1/editions/today' || url.pathname === '/editions/today')) {
     const result = await getToday(url);
+    return send(res, result.status, result.body, result.status === 200 ? { 'Cache-Control': 'public, max-age=60' } : {});
+  }
+  if (req.method === 'GET' && (url.pathname === '/functions/v1/editions/ai/today' || url.pathname === '/editions/ai/today')) {
+    const result = await getToday(url, { region: 'ai', language: 'zh-CN' });
     return send(res, result.status, result.body, result.status === 200 ? { 'Cache-Control': 'public, max-age=60' } : {});
   }
   if (!url.pathname.startsWith('/functions/v1/admin') && !url.pathname.startsWith('/admin')) {

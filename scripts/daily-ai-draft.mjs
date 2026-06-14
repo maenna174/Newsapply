@@ -6,12 +6,17 @@ import { spawnSync } from 'node:child_process';
 
 const DEFAULT_ADMIN_URL = 'http://127.0.0.1:3000/functions/v1/admin';
 const DEFAULT_LIMIT = 50;
+const DEFAULT_SOURCE_FILE = 'data/rss-sources.json';
+const DEFAULT_REGION = 'cn';
+const DEFAULT_LANGUAGE = 'zh-CN';
+const DEFAULT_STATEMENT = '本期新闻由 AI 按公共重要性、来源多样性和主题配额生成初稿，并经人工审核后发布；不基于个人阅读行为排序。';
 
 function usage() {
   console.log(`Usage:
   node scripts/daily-ai-draft.mjs
   node scripts/daily-ai-draft.mjs --date 2026-06-10
   node scripts/daily-ai-draft.mjs --skip-fetch --candidates data/candidates.2026-06-10.json
+  node scripts/daily-ai-draft.mjs --sources data/ai-rss-sources.json --region ai --candidates data/ai-candidates.2026-06-10.json
 
 Environment:
   DAILYTEN_ADMIN_TOKEN     required
@@ -20,10 +25,16 @@ Environment:
 Options:
   --date <YYYY-MM-DD>      Edition date. Default: today in Asia/Shanghai
   --limit <n>              Candidate count to keep. Default: ${DEFAULT_LIMIT}
+  --max-per-source <n>     Max final candidates from the same source
+  --sources <file>          RSS source config. Default: ${DEFAULT_SOURCE_FILE}
+  --region <value>          Edition region. Use "ai" for AI news. Default: ${DEFAULT_REGION}
+  --language <value>        Edition language. Default: ${DEFAULT_LANGUAGE}
+  --statement <text>        Edition statement
   --candidates <file>      Candidate JSON path. Default: data/candidates.<date>.json
   --out <file>             Draft JSON path. Default: data/daily-edition.<date>.ai-draft.json
   --skip-fetch             Reuse an existing candidate file
   --no-save                Do not save the generated draft into the admin database
+  --publish                Publish the generated edition after dry run
 `);
 }
 
@@ -105,22 +116,35 @@ async function main() {
 
   const date = getArg('--date', chinaDate());
   const limit = Number(getArg('--limit', DEFAULT_LIMIT));
+  const sourceFile = getArg('--sources', DEFAULT_SOURCE_FILE);
+  const maxPerSource = getArg('--max-per-source', '');
+  const region = getArg('--region', DEFAULT_REGION);
+  const language = getArg('--language', DEFAULT_LANGUAGE);
+  const statement = getArg('--statement', DEFAULT_STATEMENT);
   const candidateFile = resolve(process.cwd(), getArg('--candidates', `data/candidates.${date}.json`));
   const outFile = resolve(process.cwd(), getArg('--out', `data/daily-edition.${date}.ai-draft.json`));
 
   if (!process.argv.includes('--skip-fetch')) {
-    run('node', [
+    const fetchArgs = [
       'scripts/fetch-candidates.mjs',
+      '--sources', sourceFile,
       '--date', date,
       '--out', candidateFile,
       '--limit', String(limit)
-    ]);
+    ];
+    if (maxPerSource) {
+      fetchArgs.push('--max-per-source', maxPerSource);
+    }
+    run('node', fetchArgs);
   }
 
   const candidates = JSON.parse(readFileSync(candidateFile, 'utf8'));
   if (!Array.isArray(candidates.candidates) || candidates.candidates.length < 10) {
     throw new Error(`Candidate file needs at least 10 items, got ${candidates.candidates?.length || 0}.`);
   }
+  candidates.region = region;
+  candidates.language = language;
+  candidates.statement = statement;
 
   const draftResult = await adminFetch('/ai/draft', candidates);
   const draft = draftResult.draft;
@@ -136,7 +160,8 @@ async function main() {
   console.log(`Dry run ok: ${dryRun.items} items`);
 
   if (!process.argv.includes('--no-save')) {
-    const saved = await adminFetch('/editions', draft);
+    const savePath = process.argv.includes('--publish') ? '/editions/publish' : '/editions';
+    const saved = await adminFetch(savePath, draft);
     console.log(`Saved draft edition: ${saved.edition?.edition_date || date} / ${saved.edition?.status || 'draft'}`);
   }
 }

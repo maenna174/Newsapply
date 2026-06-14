@@ -22,6 +22,7 @@ Options:
   --out <file>              Output candidate JSON. Default: data/candidates.<date>.json
   --limit <n>               Max total candidates. Default: ${DEFAULT_TOTAL_LIMIT}. Use 0 for no limit
   --limit-per-source <n>    Max items per source. Default: ${DEFAULT_LIMIT_PER_SOURCE}
+  --max-per-source <n>      Max final candidates from the same source. Default: 0 means unlimited
   --max-age-days <n>        Keep recent items only. Default: ${DEFAULT_MAX_AGE_DAYS}
   --timeout-ms <n>          Network timeout per source. Default: ${DEFAULT_TIMEOUT_MS}
 `);
@@ -124,7 +125,47 @@ function parseItems(xml, source) {
       selectionHint: selectionHint(source.category, source.name),
       priority: Number(source.priority ?? 50)
     };
-  }).filter((item) => item.title && item.url && item.publishedAt);
+  }).filter((item) => item.title && item.url && item.publishedAt && matchesSourceKeywords(item, source));
+}
+
+function matchesSourceKeywords(item, source) {
+  const keywords = sourceKeywords(source);
+  if (keywords.length === 0) {
+    return true;
+  }
+  const text = `${item.title}\n${item.summary}`.toLowerCase();
+  return keywords.some((keyword) => text.includes(String(keyword).toLowerCase()));
+}
+
+function sourceKeywords(source) {
+  const keywords = Array.isArray(source.includeKeywords) ? [...source.includeKeywords] : [];
+  if (source.keywordPreset === 'ai') {
+    keywords.push(
+      'ai',
+      'artificial intelligence',
+      '人工智能',
+      '大模型',
+      '生成式',
+      '机器学习',
+      'openai',
+      'anthropic',
+      'deepseek',
+      'mistral',
+      'gemini',
+      'claude',
+      'llm',
+      'large language model',
+      'agent',
+      'agents',
+      'chatbot',
+      'model',
+      'neural',
+      'nvidia',
+      'gpu',
+      'robot'
+    );
+  }
+  return Array.from(new Set(keywords));
 }
 
 function parseDate(value) {
@@ -209,6 +250,7 @@ async function main() {
   const sourceFile = resolve(process.cwd(), getArg('--sources', DEFAULT_SOURCE_FILE));
   const outFile = resolve(process.cwd(), getArg('--out', `data/candidates.${date}.json`));
   const limitPerSource = Number(getArg('--limit-per-source', DEFAULT_LIMIT_PER_SOURCE));
+  const maxPerSource = Number(getArg('--max-per-source', 0));
   const totalLimit = Number(getArg('--limit', DEFAULT_TOTAL_LIMIT));
   const maxAgeDays = Number(getArg('--max-age-days', DEFAULT_MAX_AGE_DAYS));
   const timeoutMs = Number(getArg('--timeout-ms', DEFAULT_TIMEOUT_MS));
@@ -228,7 +270,7 @@ async function main() {
     }
   }
 
-  const candidates = dedupe(results)
+  const candidates = limitSourceCounts(dedupe(results)
     .filter((item) => withinMaxAge(item, maxAgeDays))
     .sort((a, b) => {
       const priority = b.priority - a.priority;
@@ -236,7 +278,7 @@ async function main() {
         return priority;
       }
       return Date.parse(b.publishedAt) - Date.parse(a.publishedAt);
-    })
+    }), maxPerSource)
     .slice(0, totalLimit > 0 ? totalLimit : undefined)
     .map((item, index) => ({
       candidateId: index + 1,
@@ -258,6 +300,24 @@ async function main() {
   mkdirSync(dirname(outFile), { recursive: true });
   writeFileSync(outFile, `${JSON.stringify(payload, null, 2)}\n`);
   console.log(`Wrote ${candidates.length} candidates to ${outFile}`);
+}
+
+function limitSourceCounts(items, maxPerSource) {
+  if (!Number.isFinite(maxPerSource) || maxPerSource <= 0) {
+    return items;
+  }
+  const counts = new Map();
+  const result = [];
+  for (const item of items) {
+    const sourceName = item.source?.name || 'unknown';
+    const count = counts.get(sourceName) || 0;
+    if (count >= maxPerSource) {
+      continue;
+    }
+    counts.set(sourceName, count + 1);
+    result.push(item);
+  }
+  return result;
 }
 
 main().catch((error) => {

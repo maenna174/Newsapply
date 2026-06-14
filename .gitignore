@@ -11,6 +11,7 @@ dist/
 *.zip
 .idea/
 data/candidates.*.json
+data/ai-candidates.*.json
 data/news-candidates-*.json
 data/daily-edition.20*.json
 
