@@ -2,103 +2,103 @@
   "color": [
     {
       "name": "start_window_background",
-      "value": "#F6F7F2"
+      "value": "#111827"
     },
     {
       "name": "page_background",
-      "value": "#F7FAFF"
+      "value": "#111827"
     },
     {
       "name": "surface_color",
-      "value": "#D1FFFFFF"
+      "value": "#F02A3448"
     },
     {
       "name": "elevated_surface_color",
-      "value": "#EBFFFFFF"
+      "value": "#F0384358"
     },
     {
       "name": "soft_surface_color",
-      "value": "#D1ECF5FF"
+      "value": "#F0222D40"
     },
     {
       "name": "primary_text_color",
-      "value": "#1D1D1F"
+      "value": "#FFFFFF"
     },
     {
       "name": "secondary_text_color",
-      "value": "#344054"
+      "value": "#E8ECF3"
     },
     {
       "name": "tertiary_text_color",
-      "value": "#667085"
+      "value": "#C8D0DE"
     },
     {
       "name": "subtle_border_color",
-      "value": "#E0FFFFFF"
+      "value": "#1FFFFFFF"
     },
     {
       "name": "inactive_mark_background",
-      "value": "#C7FFFFFF"
+      "value": "#3368A4FF"
     },
     {
       "name": "detail_overlay_background",
-      "value": "#B8EEF3FF"
+      "value": "#C7111827"
     },
     {
       "name": "detail_toolbar_background",
-      "value": "#8AFFFFFF"
+      "value": "#A62B3448"
     },
     {
       "name": "accent_color",
-      "value": "#007AFF"
+      "value": "#0A84FF"
     },
     {
       "name": "glass_shadow_color",
-      "value": "#1F5476B4"
+      "value": "#52000000"
     },
     {
       "name": "glass_highlight_color",
-      "value": "#6BFFFFFF"
+      "value": "#14FFFFFF"
     },
     {
       "name": "theme_option_selected_background",
-      "value": "#F0FFFFFF"
+      "value": "#F04D5A72"
     },
     {
       "name": "theme_option_unselected_background",
-      "value": "#6BFFFFFF"
+      "value": "#C7334054"
     },
     {
       "name": "settings_control_background",
-      "value": "#8AFFFFFF"
+      "value": "#D13A465C"
     },
     {
       "name": "settings_card_color",
-      "value": "#D1FFFFFF"
+      "value": "#F03A455A"
     },
     {
       "name": "settings_metric_card_color",
-      "value": "#EBFFFFFF"
+      "value": "#F0445067"
     },
     {
       "name": "settings_about_card_color",
-      "value": "#D1ECF5FF"
+      "value": "#F0344055"
     },
     {
       "name": "status_success_text",
-      "value": "#2E6F57"
+      "value": "#8EE0B8"
     },
     {
       "name": "status_success_background",
-      "value": "#E7F1EB"
+      "value": "#2934C759"
     },
     {
       "name": "status_error_text",
-      "value": "#B34B45"
+      "value": "#FF9F92"
     },
     {
       "name": "status_error_background",
-      "value": "#F5E5E3"
+      "value": "#2EFF453A"
     }
   ]
 }

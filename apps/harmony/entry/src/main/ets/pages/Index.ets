@@ -1,3 +1,5 @@
+import { ConfigurationConstant } from '@kit.AbilityKit';
+import { HdsTabs, hdsMaterial } from '@kit.UIDesignKit';
 import { AI_ARTICLES, MOCK_ARTICLES, TODAY_EDITION } from '../data/MockNewsData';
 import { EditionMeta, NewsArticle } from '../model/NewsModels';
 import { DailyNewsService } from '../services/DailyNewsService';
@@ -13,6 +15,9 @@ struct Index {
   @Local selectedCategory: string = '全部';
   @Local statusText: string = '正在读取今日新闻';
   @Local isLoading: boolean = false;
+  @Local themeMode: string = 'system';
+  @Local systemDarkMode: boolean = false;
+  @Local environmentReady: boolean = false;
   @Local isDarkMode: boolean = false;
   @Local articles: NewsArticle[] = MOCK_ARTICLES;
   @Local aiArticles: NewsArticle[] = AI_ARTICLES;
@@ -20,14 +25,22 @@ struct Index {
 
   private dailyNewsService: DailyNewsService = new DailyNewsService();
   private detailScroller: Scroller = new Scroller();
+  private themeSyncTimer: number = -1;
   private categoryOrder: string[] = ['全部', '国内', '国际', '财经', '科技', '健康', '教育', '社会', '体育', '视角'];
 
   aboutToAppear(): void {
+    this.applyThemeMode();
+    this.startThemeSyncTimer();
     this.loadTodayNews();
     this.loadAiNews();
   }
 
+  aboutToDisappear(): void {
+    this.stopThemeSyncTimer();
+  }
+
   onPageShow(): void {
+    this.applyThemeMode();
     this.loadTodayNews('正在同步最新新闻');
     this.loadAiNews();
   }
@@ -221,18 +234,18 @@ struct Index {
     return count;
   }
 
-  private statusColor(): string {
+  private statusColor(): Resource {
     if (this.statusText.includes('失败')) {
-      return this.isDarkMode ? '#FF9F92' : '#B34B45';
+      return $r('app.color.status_error_text');
     }
-    return this.isDarkMode ? '#8EE0B8' : '#2E6F57';
+    return $r('app.color.status_success_text');
   }
 
-  private statusBackground(): string {
+  private statusBackground(): Resource {
     if (this.statusText.includes('失败')) {
-      return this.isDarkMode ? 'rgba(255, 69, 58, 0.18)' : '#F5E5E3';
+      return $r('app.color.status_error_background');
     }
-    return this.isDarkMode ? 'rgba(52, 199, 89, 0.16)' : '#E7F1EB';
+    return $r('app.color.status_success_background');
   }
 
   private categorySoftColor(category: string): string {
@@ -409,97 +422,172 @@ struct Index {
   }
 
   private switchTab(tab: string): void {
-    this.activeTab = tab;
+    if (this.activeTab === tab) {
+      return;
+    }
+    this.getUIContext().animateTo({ duration: 260, curve: Curve.EaseOut }, () => {
+      this.activeTab = tab;
+    });
   }
 
   private switchTabIndex(index: number): void {
-    this.activeTab = this.tabByIndex(index);
+    this.switchTab(this.tabByIndex(index));
   }
 
-  private toggleTheme(): void {
-    this.isDarkMode = !this.isDarkMode;
+  private applyThemeMode(): void {
+    this.syncSystemDarkMode();
+    this.isDarkMode = this.themeMode === 'dark' || (this.themeMode === 'system' && this.systemDarkMode);
+    this.applyAppColorMode();
   }
 
-  private pageBackground(): string {
-    return this.isDarkMode ? '#07101F' : '#F7FAFF';
-  }
-
-  private surfaceColor(): string {
-    return this.isDarkMode ? 'rgba(28, 33, 46, 0.72)' : 'rgba(255, 255, 255, 0.82)';
-  }
-
-  private elevatedSurfaceColor(): string {
-    return this.isDarkMode ? 'rgba(43, 49, 64, 0.78)' : 'rgba(255, 255, 255, 0.92)';
-  }
-
-  private softSurfaceColor(): string {
-    return this.isDarkMode ? 'rgba(20, 31, 47, 0.72)' : 'rgba(236, 245, 255, 0.82)';
-  }
-
-  private primaryTextColor(): string {
-    return this.isDarkMode ? '#F5F5F7' : '#1D1D1F';
-  }
-
-  private secondaryTextColor(): string {
-    return this.isDarkMode ? '#C8CBD2' : '#344054';
-  }
-
-  private tertiaryTextColor(): string {
-    return this.isDarkMode ? '#9EA3AF' : '#667085';
-  }
-
-  private subtleBorderColor(): string {
-    return this.isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.88)';
-  }
-
-  private inactiveMarkBackground(): string {
-    return this.isDarkMode ? 'rgba(104, 164, 255, 0.20)' : 'rgba(255, 255, 255, 0.78)';
-  }
-
-  private detailOverlayBackground(): string {
-    return this.isDarkMode ? 'rgba(7, 16, 31, 0.78)' : 'rgba(238, 243, 255, 0.72)';
-  }
-
-  private detailToolbarBackground(): string {
-    return this.isDarkMode ? 'rgba(28, 33, 46, 0.62)' : 'rgba(255, 255, 255, 0.54)';
-  }
-
-  private accentColor(): string {
-    return '#007AFF';
-  }
-
-  private glassShadowColor(): string {
-    return this.isDarkMode ? 'rgba(0, 0, 0, 0.34)' : 'rgba(84, 118, 180, 0.12)';
-  }
-
-  private glassHighlightColor(): string {
-    return this.isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.42)';
-  }
-
-  private bottomBarBackground(): string {
-    return this.isDarkMode ? 'rgba(10, 17, 31, 0.92)' : 'rgba(255, 255, 255, 0.94)';
-  }
-
-  private bottomTabBackground(tab: string): string {
-    if (this.activeTab === tab) {
-      return this.isDarkMode ? 'rgba(0, 122, 255, 0.22)' : 'rgba(0, 122, 255, 0.12)';
+  private startThemeSyncTimer(): void {
+    if (this.themeSyncTimer >= 0) {
+      return;
     }
-    return 'rgba(255, 255, 255, 0)';
+    this.themeSyncTimer = setInterval(() => {
+      if (this.themeMode === 'system') {
+        this.applyThemeMode();
+      }
+    }, 800);
   }
 
-  private bottomTabTextColor(tab: string): string {
-    return this.activeTab === tab ? this.accentColor() : this.primaryTextColor();
-  }
-
-  private bottomTabMarkBackground(tab: string): string {
-    if (this.activeTab === tab) {
-      return this.accentColor();
+  private stopThemeSyncTimer(): void {
+    if (this.themeSyncTimer < 0) {
+      return;
     }
-    return this.isDarkMode ? 'rgba(255, 255, 255, 0.10)' : 'rgba(0, 122, 255, 0.08)';
+    clearInterval(this.themeSyncTimer);
+    this.themeSyncTimer = -1;
+  }
+
+  private syncSystemDarkMode(): void {
+    if (!this.environmentReady) {
+      Environment.envProp<ColorMode>('colorMode', ColorMode.LIGHT);
+      this.environmentReady = true;
+    }
+    const colorMode: ColorMode | undefined = AppStorage.get<ColorMode>('colorMode');
+    if (colorMode !== undefined) {
+      this.systemDarkMode = colorMode === ColorMode.DARK;
+    }
+  }
+
+  private applyAppColorMode(): void {
+    let colorMode: ConfigurationConstant.ColorMode = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
+    if (this.themeMode === 'dark') {
+      colorMode = ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
+    } else if (this.themeMode === 'light') {
+      colorMode = ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
+    }
+    try {
+      getContext(this).getApplicationContext().setColorMode(colorMode);
+    } catch (error) {
+    }
+  }
+
+  private setThemeMode(mode: string): void {
+    this.themeMode = mode;
+    this.applyThemeMode();
+  }
+
+  private themeColorMode(): ThemeColorMode {
+    if (this.themeMode === 'dark') {
+      return ThemeColorMode.DARK;
+    }
+    if (this.themeMode === 'light') {
+      return ThemeColorMode.LIGHT;
+    }
+    return ThemeColorMode.SYSTEM;
+  }
+
+  private pageBackground(): Resource {
+    return $r('app.color.page_background');
+  }
+
+  private surfaceColor(): Resource {
+    return $r('app.color.surface_color');
+  }
+
+  private elevatedSurfaceColor(): Resource {
+    return $r('app.color.elevated_surface_color');
+  }
+
+  private softSurfaceColor(): Resource {
+    return $r('app.color.soft_surface_color');
+  }
+
+  private primaryTextColor(): Resource {
+    return $r('app.color.primary_text_color');
+  }
+
+  private secondaryTextColor(): Resource {
+    return $r('app.color.secondary_text_color');
+  }
+
+  private tertiaryTextColor(): Resource {
+    return $r('app.color.tertiary_text_color');
+  }
+
+  private subtleBorderColor(): Resource {
+    return $r('app.color.subtle_border_color');
+  }
+
+  private inactiveMarkBackground(): Resource {
+    return $r('app.color.inactive_mark_background');
+  }
+
+  private detailOverlayBackground(): Resource {
+    return $r('app.color.detail_overlay_background');
+  }
+
+  private detailToolbarBackground(): Resource {
+    return $r('app.color.detail_toolbar_background');
+  }
+
+  private accentColor(): Resource {
+    return $r('app.color.accent_color');
+  }
+
+  private glassShadowColor(): Resource {
+    return $r('app.color.glass_shadow_color');
+  }
+
+  private glassHighlightColor(): Resource {
+    return $r('app.color.glass_highlight_color');
   }
 
   private themeButtonText(): string {
-    return this.isDarkMode ? '浅色' : '深色';
+    if (this.themeMode === 'dark') {
+      return '深色';
+    }
+    if (this.themeMode === 'light') {
+      return '浅色';
+    }
+    return '跟随系统';
+  }
+
+  private themeStatusText(): string {
+    if (this.themeMode === 'system') {
+      return this.isDarkMode ? '跟随系统 · 当前深色' : '跟随系统 · 当前浅色';
+    }
+    return this.isDarkMode ? '当前为深色模式' : '当前为浅色模式';
+  }
+
+  private themeOptionBackground(mode: string): Resource {
+    if (this.themeMode === mode) {
+      return $r('app.color.theme_option_selected_background');
+    }
+    return $r('app.color.theme_option_unselected_background');
+  }
+
+  private themeOptionTextColor(mode: string): Resource {
+    return this.themeMode === mode ? this.accentColor() : this.secondaryTextColor();
+  }
+
+  private settingsLightDegree(): number {
+    return 0.95;
+  }
+
+  private settingsControlBackground(): Resource {
+    return this.inactiveMarkBackground();
   }
 
   private detailBackgroundBlur(): number {
@@ -519,59 +607,102 @@ struct Index {
   }
 
   build() {
-    Stack() {
-      Column() {
-        this.HomeScreen()
-      }
-      .width('100%')
-      .height('100%')
-      .blur(this.detailBackgroundBlur())
-      .scale({ x: this.detailBackgroundScale(), y: this.detailBackgroundScale() })
-      .animation({ duration: 260, curve: Curve.EaseOut })
-
-      if (this.isDetailOpen()) {
+    WithTheme({ colorMode: this.themeColorMode() }) {
+      Stack() {
         Column() {
-          this.DetailScreen(this.getSelectedArticle())
+          this.HomeScreen()
         }
         .width('100%')
         .height('100%')
+        .blur(this.detailBackgroundBlur())
+        .scale({ x: this.detailBackgroundScale(), y: this.detailBackgroundScale() })
+        .animation({ duration: 260, curve: Curve.EaseOut })
+
+        if (this.isDetailOpen()) {
+          Column() {
+            this.DetailScreen(this.getSelectedArticle())
+          }
+          .width('100%')
+          .height('100%')
           .opacity(this.detailOpacity())
           .translate({ y: this.detailOffsetY() })
           .animation({ duration: 180, curve: Curve.EaseOut })
+        }
       }
+      .width('100%')
+      .height('100%')
+      .backgroundColor(this.pageBackground())
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(this.pageBackground())
   }
 
   @Builder
   private HomeScreen() {
-    Tabs({ barPosition: BarPosition.End, index: this.activeTabIndex() }) {
-      TabContent() {
-        this.TodayContent()
-      }
-      .tabBar(this.BottomTabItem('today', '今日', '今'))
+    Column() {
+      HdsTabs({ index: this.activeTabIndex() }) {
+        TabContent() {
+          this.TodayContent()
+        }
+        .tabBar(this.TabBarItem(0, '今日', $r('sys.symbol.house')))
 
-      TabContent() {
-        this.AiScreen()
-      }
-      .tabBar(this.BottomTabItem('ai', 'AI', 'AI'))
+        TabContent() {
+          this.AiScreen()
+        }
+        .tabBar(this.TabBarItem(1, 'AI', $r('sys.symbol.AI_person')))
 
-      TabContent() {
-        this.SettingsScreen()
+        TabContent() {
+          this.SettingsScreen()
+        }
+        .tabBar(this.TabBarItem(2, '设置', $r('sys.symbol.gearshape')))
       }
-      .tabBar(this.BottomTabItem('settings', '设置', '设'))
+      .onChange((index: number) => {
+        this.switchTabIndex(index);
+      })
+      .vertical(false)
+      .barPosition(BarPosition.End)
+      .barMode(BarMode.Fixed)
+      .barHeight(64)
+      .barOverlap(true)
+      .barFloatingStyle({
+        barSideMargin: 18,
+        barBottomMargin: 28,
+        lightColor: this.accentColor(),
+        systemMaterialEffect: {
+          materialType: hdsMaterial.MaterialType.IMMERSIVE,
+          materialLevel: hdsMaterial.MaterialLevel.ADAPTIVE
+        },
+        thermoCtrl: true,
+        barOpacity: 0.88
+      })
+      .barBackgroundBlurStyle(BlurStyle.Regular)
+      .barBackgroundColor(Color.Transparent)
+      .animationDuration(260)
+      .width('100%')
+      .height('100%')
+      .backgroundColor(this.pageBackground())
     }
-    .onChange((index: number) => {
-      this.switchTabIndex(index);
-    })
-    .barBackgroundColor(this.bottomBarBackground())
-    .barHeight(72)
-    .animationDuration(260)
     .width('100%')
     .height('100%')
+    .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.BOTTOM])
     .backgroundColor(this.pageBackground())
+  }
+
+  @Builder
+  private TabBarItem(index: number, title: string, icon: Resource) {
+    Column() {
+      SymbolGlyph(icon)
+        .fontColor([this.activeTabIndex() === index ? $r('sys.color.ohos_id_color_primary') : $r('sys.color.ohos_id_color_secondary')])
+        .fontSize(24)
+        .symbolEffect(new BounceSymbolEffect(), this.activeTabIndex() === index)
+
+      Text(title)
+        .fontSize(10)
+        .fontColor(this.activeTabIndex() === index ? $r('sys.color.ohos_id_color_primary') : $r('sys.color.ohos_id_color_secondary'))
+        .margin({ top: 4 })
+    }
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+    .height('100%')
+    .width('100%')
   }
 
   @Builder
@@ -594,7 +725,7 @@ struct Index {
 
           }
           .width('100%')
-          .padding({ left: 16, right: 16, top: 16, bottom: 24 })
+          .padding({ left: 16, right: 16, top: 16, bottom: 92 })
         }
         .width('100%')
         .height('100%')
@@ -669,7 +800,7 @@ struct Index {
         }, (article: NewsArticle) => article.id)
       }
       .width('100%')
-      .padding({ left: 18, right: 18, top: 18, bottom: 24 })
+      .padding({ left: 18, right: 18, top: 18, bottom: 92 })
     }
     .width('100%')
     .height('100%')
@@ -708,7 +839,7 @@ struct Index {
                 .fontWeight(FontWeight.Bold)
                 .fontColor(this.primaryTextColor())
 
-              Text(this.isDarkMode ? '当前为深色模式' : '当前为浅色模式')
+              Text(this.themeStatusText())
                 .fontSize(13)
                 .fontColor(this.secondaryTextColor())
             }
@@ -720,7 +851,7 @@ struct Index {
           .width('100%')
           .alignItems(VerticalAlign.Center)
 
-          Text('深色模式会同步影响首页、AI 专区、详情页和底部导航。')
+          Text('默认跟随系统，也可以固定浅色或深色；会同步影响首页、AI 专区、详情页和底部导航。')
             .fontSize(13)
             .fontColor(this.tertiaryTextColor())
             .lineHeight(20)
@@ -730,10 +861,10 @@ struct Index {
         .padding(18)
         .backgroundColor(this.surfaceColor())
         .backgroundBlurStyle(BlurStyle.COMPONENT_REGULAR)
-        .lightUpEffect(0.95)
+        .lightUpEffect(this.settingsLightDegree())
         .borderRadius(28)
         .border({ width: 1, color: this.subtleBorderColor() })
-        .shadow({ radius: 22, color: this.glassShadowColor(), offsetY: 9 })
+        .shadow({ radius: 24, color: this.glassShadowColor(), offsetY: 10 })
 
         Column({ space: 12 }) {
           Text('同步')
@@ -783,10 +914,10 @@ struct Index {
         .padding(18)
         .backgroundColor(this.surfaceColor())
         .backgroundBlurStyle(BlurStyle.COMPONENT_REGULAR)
-        .lightUpEffect(0.95)
+        .lightUpEffect(this.settingsLightDegree())
         .borderRadius(28)
         .border({ width: 1, color: this.subtleBorderColor() })
-        .shadow({ radius: 22, color: this.glassShadowColor(), offsetY: 9 })
+        .shadow({ radius: 24, color: this.glassShadowColor(), offsetY: 10 })
 
         Row({ space: 10 }) {
           this.SettingsMetric('今日新闻', `${this.articles.length}`, '条')
@@ -804,10 +935,10 @@ struct Index {
         .padding(18)
         .backgroundColor(this.surfaceColor())
         .backgroundBlurStyle(BlurStyle.COMPONENT_REGULAR)
-        .lightUpEffect(0.95)
+        .lightUpEffect(this.settingsLightDegree())
         .borderRadius(28)
         .border({ width: 1, color: this.subtleBorderColor() })
-        .shadow({ radius: 22, color: this.glassShadowColor(), offsetY: 9 })
+        .shadow({ radius: 24, color: this.glassShadowColor(), offsetY: 10 })
 
         Column({ space: 8 }) {
           Text('关于 DailyTen')
@@ -823,49 +954,19 @@ struct Index {
         }
         .width('100%')
         .padding(18)
-        .backgroundColor(this.softSurfaceColor())
+        .backgroundColor(this.surfaceColor())
         .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
-        .lightUpEffect(0.95)
+        .lightUpEffect(this.settingsLightDegree())
         .borderRadius(28)
         .border({ width: 1, color: this.subtleBorderColor() })
         .alignItems(HorizontalAlign.Start)
       }
       .width('100%')
-      .padding({ left: 18, right: 18, top: 22, bottom: 24 })
+      .padding({ left: 18, right: 18, top: 22, bottom: 92 })
     }
     .width('100%')
     .height('100%')
     .backgroundColor(this.pageBackground())
-  }
-
-  @Builder
-  private BottomTabItem(tab: string, label: string, mark: string) {
-    Column({ space: 4 }) {
-      Text(mark)
-        .fontSize(tab === 'ai' ? 11 : 12)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(this.activeTab === tab ? '#FFFFFF' : this.accentColor())
-        .width(26)
-        .height(22)
-        .textAlign(TextAlign.Center)
-        .backgroundColor(this.bottomTabMarkBackground(tab))
-        .borderRadius(11)
-
-      Text(label)
-        .fontSize(12)
-        .fontWeight(this.activeTab === tab ? FontWeight.Bold : FontWeight.Medium)
-        .fontColor(this.bottomTabTextColor(tab))
-        .maxLines(1)
-    }
-    .width(74)
-    .height(54)
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-    .backgroundColor(this.bottomTabBackground(tab))
-    .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
-    .borderRadius(18)
-    .border({ width: this.activeTab === tab ? 1 : 0, color: this.subtleBorderColor() })
-    .lightUpEffect(this.activeTab === tab ? 0.96 : 0.88)
   }
 
   @Builder
@@ -1495,8 +1596,8 @@ struct Index {
     .layoutWeight(1)
     .padding(18)
     .backgroundColor(this.surfaceColor())
-    .backgroundBlurStyle(BlurStyle.COMPONENT_REGULAR)
-    .lightUpEffect(0.95)
+    .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
+    .lightUpEffect(this.settingsLightDegree())
     .borderRadius(28)
     .border({ width: 1, color: this.subtleBorderColor() })
     .shadow({ radius: 22, color: this.glassShadowColor(), offsetY: 8 })
@@ -1526,24 +1627,39 @@ struct Index {
 
   @Builder
   private ThemeToggle() {
-    Button(this.themeButtonText())
-      .height(34)
+    Row({ space: 6 }) {
+      this.ThemeOption('system', '跟随')
+      this.ThemeOption('light', '浅色')
+      this.ThemeOption('dark', '深色')
+    }
+    .height(38)
+    .padding({ left: 4, right: 4, top: 4, bottom: 4 })
+    .backgroundColor(this.settingsControlBackground())
+    .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
+    .lightUpEffect(0.9)
+    .borderRadius(19)
+    .border({ width: 1, color: this.subtleBorderColor() })
+    .alignItems(VerticalAlign.Center)
+  }
+
+  @Builder
+  private ThemeOption(mode: string, label: string) {
+    Text(label)
       .fontSize(12)
       .fontWeight(FontWeight.Bold)
-      .fontColor(this.accentColor())
-      .backgroundColor(this.isDarkMode ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.92)')
-      .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
-      .lightUpEffect(0.94)
-      .borderRadius(17)
-      .border({ width: 1, color: this.subtleBorderColor() })
+      .fontColor(this.themeOptionTextColor(mode))
+      .textAlign(TextAlign.Center)
+      .height(30)
       .padding({ left: 12, right: 12 })
+      .backgroundColor(this.themeOptionBackground(mode))
+      .borderRadius(15)
       .onClick(() => {
-        this.toggleTheme();
+        this.setThemeMode(mode);
       })
   }
 
   @Builder
-  private Tag(text: string, background: string, color: string) {
+  private Tag(text: string, background: ResourceColor, color: ResourceColor) {
     Text(text)
       .fontSize(12)
       .fontWeight(FontWeight.Medium)
