@@ -112,6 +112,25 @@ cd /opt/newsapply
 node scripts/daily-ai-draft.mjs --limit 50
 ```
 
+## 自动审核并发布
+
+如果要完全自动化，可以把定时任务切换到：
+
+```bash
+cd /opt/newsapply
+node scripts/daily-auto-publish.mjs --limit 50 --allow-warnings
+```
+
+这个脚本会依次执行：
+
+1. 抓取候选池
+2. 调用 AI 生成 10 条 draft
+3. 调用后台质量检查
+4. 没有阻断错误时发布 draft
+
+`--allow-warnings` 只允许提醒项自动通过；结构错误、重复链接、不是 10 条等阻断错误仍会失败并保留 draft。
+如果希望更保守，可以去掉 `--allow-warnings`，有任何提醒项时都不自动发布。
+
 ## 安全注意
 
 - 不要把 `DAILYTEN_ADMIN_TOKEN` 提交到 GitHub。

@@ -2,6 +2,7 @@ import { ConfigurationConstant } from '@kit.AbilityKit';
 import { HdsTabs, hdsMaterial } from '@kit.UIDesignKit';
 import { AI_ARTICLES, MOCK_ARTICLES, TODAY_EDITION } from '../data/MockNewsData';
 import { EditionMeta, NewsArticle } from '../model/NewsModels';
+import { SelectedArticleStore } from '../model/SelectedArticleStore';
 import { DailyNewsService } from '../services/DailyNewsService';
 
 @Entry
@@ -64,19 +65,12 @@ struct Index {
     }, 280);
   }
 
-  private openArticle(article: NewsArticle): void {
-    this.selectedArticle = article;
-    this.selectedArticleId = article.id;
-    this.detailNextLocked = true;
-    this.detailVisible = false;
-    setTimeout(() => {
-      this.detailVisible = true;
-    }, 16);
-    setTimeout(() => {
-      if (this.selectedArticleId === article.id) {
-        this.detailNextLocked = false;
-      }
-    }, 520);
+  private openArticle(article: NewsArticle, articleList: NewsArticle[]): void {
+    SelectedArticleStore.setArticle(article, articleList);
+    try {
+      this.getUIContext().getRouter().pushUrl({ url: 'pages/Detail' });
+    } catch (error) {
+    }
   }
 
   private loadTodayNews(message: string = '正在读取今日新闻'): void {
@@ -660,18 +654,18 @@ struct Index {
       .vertical(false)
       .barPosition(BarPosition.End)
       .barMode(BarMode.Fixed)
-      .barHeight(64)
+      .barHeight(62)
       .barOverlap(true)
       .barFloatingStyle({
-        barSideMargin: 18,
-        barBottomMargin: 28,
+        barSideMargin: 16,
+        barBottomMargin: 12,
         lightColor: this.accentColor(),
         systemMaterialEffect: {
           materialType: hdsMaterial.MaterialType.IMMERSIVE,
           materialLevel: hdsMaterial.MaterialLevel.ADAPTIVE
         },
         thermoCtrl: true,
-        barOpacity: 0.88
+        barOpacity: 0.94
       })
       .barBackgroundBlurStyle(BlurStyle.Regular)
       .barBackgroundColor(Color.Transparent)
@@ -747,11 +741,11 @@ struct Index {
       Column({ space: 16 }) {
         Column({ space: 10 }) {
           Row() {
-            Text('AI 专区')
-              .fontSize(13)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(this.accentColor())
-              .letterSpacing(1.1)
+          Text('AI 专区')
+            .fontSize(13)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.accentColor())
+            .letterSpacing(0)
           }
           .width('100%')
           .alignItems(VerticalAlign.Center)
@@ -771,9 +765,9 @@ struct Index {
         .backgroundColor(this.surfaceColor())
         .backgroundBlurStyle(BlurStyle.COMPONENT_REGULAR)
         .lightUpEffect(0.96)
-        .borderRadius(28)
+        .borderRadius(24)
         .border({ width: 1, color: this.subtleBorderColor() })
-        .shadow({ radius: 22, color: this.glassShadowColor(), offsetY: 10 })
+        .shadow({ radius: 14, color: this.glassShadowColor(), offsetY: 5 })
         .alignItems(HorizontalAlign.Start)
 
         Row() {
@@ -816,7 +810,7 @@ struct Index {
             .fontSize(13)
             .fontWeight(FontWeight.Bold)
             .fontColor(this.tertiaryTextColor())
-            .letterSpacing(1.1)
+            .letterSpacing(0)
 
           Text('设置')
             .fontSize(34)
@@ -862,9 +856,9 @@ struct Index {
         .backgroundColor(this.surfaceColor())
         .backgroundBlurStyle(BlurStyle.COMPONENT_REGULAR)
         .lightUpEffect(this.settingsLightDegree())
-        .borderRadius(28)
+        .borderRadius(24)
         .border({ width: 1, color: this.subtleBorderColor() })
-        .shadow({ radius: 24, color: this.glassShadowColor(), offsetY: 10 })
+        .shadow({ radius: 16, color: this.glassShadowColor(), offsetY: 6 })
 
         Column({ space: 12 }) {
           Text('同步')
@@ -915,9 +909,9 @@ struct Index {
         .backgroundColor(this.surfaceColor())
         .backgroundBlurStyle(BlurStyle.COMPONENT_REGULAR)
         .lightUpEffect(this.settingsLightDegree())
-        .borderRadius(28)
+        .borderRadius(24)
         .border({ width: 1, color: this.subtleBorderColor() })
-        .shadow({ radius: 24, color: this.glassShadowColor(), offsetY: 10 })
+        .shadow({ radius: 16, color: this.glassShadowColor(), offsetY: 6 })
 
         Row({ space: 10 }) {
           this.SettingsMetric('今日新闻', `${this.articles.length}`, '条')
@@ -936,9 +930,9 @@ struct Index {
         .backgroundColor(this.surfaceColor())
         .backgroundBlurStyle(BlurStyle.COMPONENT_REGULAR)
         .lightUpEffect(this.settingsLightDegree())
-        .borderRadius(28)
+        .borderRadius(24)
         .border({ width: 1, color: this.subtleBorderColor() })
-        .shadow({ radius: 24, color: this.glassShadowColor(), offsetY: 10 })
+        .shadow({ radius: 16, color: this.glassShadowColor(), offsetY: 6 })
 
         Column({ space: 8 }) {
           Text('关于 DailyTen')
@@ -957,7 +951,7 @@ struct Index {
         .backgroundColor(this.surfaceColor())
         .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
         .lightUpEffect(this.settingsLightDegree())
-        .borderRadius(28)
+        .borderRadius(24)
         .border({ width: 1, color: this.subtleBorderColor() })
         .alignItems(HorizontalAlign.Start)
       }
@@ -1024,11 +1018,11 @@ struct Index {
     .backgroundColor(this.surfaceColor())
     .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
     .lightUpEffect(0.96)
-    .borderRadius(28)
+    .borderRadius(24)
     .border({ width: 1, color: this.subtleBorderColor() })
-    .shadow({ radius: 24, color: this.glassShadowColor(), offsetY: 10 })
+    .shadow({ radius: 16, color: this.glassShadowColor(), offsetY: 6 })
     .onClick(() => {
-      this.openArticle(article);
+      this.openArticle(article, this.aiArticles);
     })
   }
 
@@ -1089,12 +1083,12 @@ struct Index {
     .backgroundColor(this.surfaceColor())
     .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
     .lightUpEffect(this.cardLightDegree(index))
-    .borderRadius(28)
+    .borderRadius(24)
     .border({ width: 1, color: this.subtleBorderColor() })
     .alignItems(VerticalAlign.Center)
-    .shadow({ radius: 22, color: this.glassShadowColor(), offsetY: 8 })
+    .shadow({ radius: 14, color: this.glassShadowColor(), offsetY: 5 })
     .onClick(() => {
-      this.openArticle(article);
+      this.openArticle(article, this.aiArticles);
     })
   }
 
@@ -1107,7 +1101,7 @@ struct Index {
             .fontSize(11)
             .fontWeight(FontWeight.Bold)
             .fontColor(this.accentColor())
-            .letterSpacing(1.2)
+            .letterSpacing(0)
 
           Text('今日十条')
             .fontSize(30)
@@ -1196,9 +1190,9 @@ struct Index {
     .backgroundColor(this.surfaceColor())
     .backgroundBlurStyle(BlurStyle.COMPONENT_REGULAR)
     .lightUpEffect(this.heroLightDegree())
-    .borderRadius(28)
+    .borderRadius(24)
     .border({ width: 1, color: this.subtleBorderColor() })
-    .shadow({ radius: 24, color: this.glassShadowColor(), offsetY: 10 })
+    .shadow({ radius: 16, color: this.glassShadowColor(), offsetY: 6 })
   }
 
   @Builder
@@ -1295,11 +1289,11 @@ struct Index {
     .backgroundColor(this.surfaceColor())
     .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
     .lightUpEffect(0.96)
-    .borderRadius(28)
+    .borderRadius(24)
     .border({ width: 1, color: this.subtleBorderColor() })
-    .shadow({ radius: 24, color: this.glassShadowColor(), offsetY: 10 })
+    .shadow({ radius: 16, color: this.glassShadowColor(), offsetY: 6 })
     .onClick(() => {
-      this.openArticle(article);
+      this.openArticle(article, this.getVisibleArticles());
     })
   }
 
@@ -1381,12 +1375,12 @@ struct Index {
     .backgroundColor(this.surfaceColor())
     .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
     .lightUpEffect(this.cardLightDegree(index))
-    .borderRadius(28)
+    .borderRadius(24)
     .border({ width: 1, color: this.subtleBorderColor() })
     .alignItems(VerticalAlign.Center)
-    .shadow({ radius: 22, color: this.glassShadowColor(), offsetY: 8 })
+    .shadow({ radius: 14, color: this.glassShadowColor(), offsetY: 5 })
     .onClick(() => {
-      this.openArticle(article);
+      this.openArticle(article, this.getVisibleArticles());
     })
   }
 
@@ -1407,7 +1401,7 @@ struct Index {
     .backgroundColor(this.surfaceColor())
     .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
     .lightUpEffect(0.92)
-    .borderRadius(28)
+    .borderRadius(24)
     .border({ width: 1, color: this.subtleBorderColor() })
   }
 
@@ -1444,8 +1438,8 @@ struct Index {
       .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
       .lightUpEffect(0.94)
       .border({ width: 1, color: this.subtleBorderColor() })
-      .borderRadius(30)
-      .shadow({ radius: 20, color: this.glassShadowColor(), offsetY: 8 })
+      .borderRadius(24)
+      .shadow({ radius: 14, color: this.glassShadowColor(), offsetY: 5 })
       .margin({ left: 16, right: 16, top: 18, bottom: 12 })
 
       Scroll(this.detailScroller) {
@@ -1481,9 +1475,9 @@ struct Index {
           .backgroundColor(this.accentColor())
           .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
           .lightUpEffect(0.96)
-          .borderRadius(30)
+          .borderRadius(24)
           .border({ width: 1, color: 'rgba(255, 255, 255, 0.26)' })
-          .shadow({ radius: 28, color: this.glassShadowColor(), offsetY: 12 })
+          .shadow({ radius: 18, color: this.glassShadowColor(), offsetY: 8 })
           .alignItems(HorizontalAlign.Start)
 
           Column({ space: 10 }) {
@@ -1503,9 +1497,9 @@ struct Index {
           .backgroundColor(this.surfaceColor())
           .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
           .lightUpEffect(0.94)
-          .borderRadius(30)
+          .borderRadius(24)
           .border({ width: 1, color: this.subtleBorderColor() })
-          .shadow({ radius: 22, color: this.glassShadowColor(), offsetY: 8 })
+          .shadow({ radius: 14, color: this.glassShadowColor(), offsetY: 5 })
           .alignItems(HorizontalAlign.Start)
 
           Column({ space: 10 }) {
@@ -1525,7 +1519,7 @@ struct Index {
           .backgroundColor(this.softSurfaceColor())
           .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
           .lightUpEffect(0.95)
-          .borderRadius(30)
+          .borderRadius(24)
           .border({ width: 1, color: this.subtleBorderColor() })
           .alignItems(HorizontalAlign.Start)
 
@@ -1546,9 +1540,9 @@ struct Index {
           .backgroundColor(this.surfaceColor())
           .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
           .lightUpEffect(0.94)
-          .borderRadius(30)
+          .borderRadius(24)
           .border({ width: 1, color: this.subtleBorderColor() })
-          .shadow({ radius: 22, color: this.glassShadowColor(), offsetY: 8 })
+          .shadow({ radius: 14, color: this.glassShadowColor(), offsetY: 5 })
           .alignItems(HorizontalAlign.Start)
 
           Button(this.detailBottomHint())
@@ -1598,9 +1592,9 @@ struct Index {
     .backgroundColor(this.surfaceColor())
     .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
     .lightUpEffect(this.settingsLightDegree())
-    .borderRadius(28)
+    .borderRadius(24)
     .border({ width: 1, color: this.subtleBorderColor() })
-    .shadow({ radius: 22, color: this.glassShadowColor(), offsetY: 8 })
+    .shadow({ radius: 14, color: this.glassShadowColor(), offsetY: 5 })
     .alignItems(HorizontalAlign.Start)
   }
 

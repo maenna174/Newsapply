@@ -2,23 +2,23 @@
   "color": [
     {
       "name": "start_window_background",
-      "value": "#F6F7F2"
+      "value": "#F5F7FA"
     },
     {
       "name": "page_background",
-      "value": "#F7FAFF"
+      "value": "#F5F7FA"
     },
     {
       "name": "surface_color",
-      "value": "#D1FFFFFF"
+      "value": "#FFFFFFFF"
     },
     {
       "name": "elevated_surface_color",
-      "value": "#EBFFFFFF"
+      "value": "#FFF7F9FC"
     },
     {
       "name": "soft_surface_color",
-      "value": "#D1ECF5FF"
+      "value": "#FFEAF2FF"
     },
     {
       "name": "primary_text_color",
@@ -26,63 +26,63 @@
     },
     {
       "name": "secondary_text_color",
-      "value": "#344054"
+      "value": "#4E5969"
     },
     {
       "name": "tertiary_text_color",
-      "value": "#667085"
+      "value": "#86909C"
     },
     {
       "name": "subtle_border_color",
-      "value": "#E0FFFFFF"
+      "value": "#FFE5E6EB"
     },
     {
       "name": "inactive_mark_background",
-      "value": "#C7FFFFFF"
+      "value": "#FFF2F3F5"
     },
     {
       "name": "detail_overlay_background",
-      "value": "#B8EEF3FF"
+      "value": "#FFF5F7FA"
     },
     {
       "name": "detail_toolbar_background",
-      "value": "#8AFFFFFF"
+      "value": "#F2FFFFFF"
     },
     {
       "name": "accent_color",
-      "value": "#007AFF"
+      "value": "#0A59F7"
     },
     {
       "name": "glass_shadow_color",
-      "value": "#1F5476B4"
+      "value": "#1A000000"
     },
     {
       "name": "glass_highlight_color",
-      "value": "#6BFFFFFF"
+      "value": "#FFFFFFFF"
     },
     {
       "name": "theme_option_selected_background",
-      "value": "#F0FFFFFF"
+      "value": "#FFFFFFFF"
     },
     {
       "name": "theme_option_unselected_background",
-      "value": "#6BFFFFFF"
+      "value": "#FFF2F3F5"
     },
     {
       "name": "settings_control_background",
-      "value": "#8AFFFFFF"
+      "value": "#FFF2F3F5"
     },
     {
       "name": "settings_card_color",
-      "value": "#D1FFFFFF"
+      "value": "#FFFFFFFF"
     },
     {
       "name": "settings_metric_card_color",
-      "value": "#EBFFFFFF"
+      "value": "#FFF7F9FC"
     },
     {
       "name": "settings_about_card_color",
-      "value": "#D1ECF5FF"
+      "value": "#FFEAF2FF"
     },
     {
       "name": "status_success_text",
